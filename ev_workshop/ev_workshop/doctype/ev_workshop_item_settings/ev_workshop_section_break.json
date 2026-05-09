@@ -1,0 +1,10 @@
+{
+ "custom_field": 1,
+ "dt": "Item",
+ "field_name": "ev_workshop_section",
+ "label": "EV Workshop",
+ "fieldtype": "Section Break",
+ "insert_after": "item_tax_section_break",
+ "collapsible": 1,
+ "options": "fa fa-wrench"
+}

@@ -1,0 +1,350 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "JOB-.YYYY.-.####.",
+ "creation": "2026-03-04 11:00:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "date",
+  "history_no",
+  "customer_name",
+  "mobile_no",
+  "column_break_ldce",
+  "service_type",
+  "km_reading",
+  "status",
+  "urgent",
+  "section_break_xqdz",
+  "complaints",
+  "test_allocation_section",
+  "supervisor",
+  "mechanic",
+  "amended_from",
+  "test_inspection_section",
+  "mirror_rh",
+  "mirror_lh",
+  "charger",
+  "toolkit",
+  "service_book",
+  "battery",
+  "horn",
+  "column_break_nggc",
+  "hl_bulb",
+  "il_bulb",
+  "tl_bulb",
+  "tyres_front",
+  "tyres_rear",
+  "scratch_damages",
+  "spare_vehicle",
+  "test_parts_labour_section",
+  "items",
+  "grand_total",
+  "test_approval_section",
+  "customer_approval",
+  "approval_date",
+  "send_quote",
+  "test_payments_section",
+  "payment_mode",
+  "payment_rcd"
+ ],
+ "fields": [
+  {
+   "default": "Today",
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "history_no",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "History No.",
+   "options": "Customer History Master",
+   "reqd": 1
+  },
+  {
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "label": "Customer Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "mobile_no",
+   "fieldtype": "Data",
+   "label": "Mobile No.",
+   "read_only": 1
+  },
+  {
+   "fieldname": "service_type",
+   "fieldtype": "Select",
+   "label": "Service Type",
+   "options": "Free\nPaid",
+   "reqd": 1
+  },
+  {
+   "fieldname": "km_reading",
+   "fieldtype": "Int",
+   "label": "KM Reading",
+   "reqd": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Admitted\nInspection\nQuoted\nApproved\nRepairing\nReady\nCompleted\nCancelled",
+   "reqd": 1
+  },
+  {
+   "fieldname": "urgent",
+   "fieldtype": "Select",
+   "label": "Urgent",
+   "options": "Yes\nNo"
+  },
+  {
+   "fieldname": "complaints",
+   "fieldtype": "Small Text",
+   "label": "Complaints",
+   "reqd": 1
+  },
+  {
+   "fieldname": "test_allocation_section",
+   "fieldtype": "Tab Break",
+   "label": "Allocation"
+  },
+  {
+   "fieldname": "supervisor",
+   "fieldtype": "Link",
+   "label": "Supervisor",
+   "options": "Employee"
+  },
+  {
+   "fieldname": "mechanic",
+   "fieldtype": "Link",
+   "label": "Mechanic",
+   "options": "Employee"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Job Master",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "test_inspection_section",
+   "fieldtype": "Tab Break",
+   "label": "Inspection"
+  },
+  {
+   "default": "0",
+   "fieldname": "mirror_rh",
+   "fieldtype": "Check",
+   "label": "Mirror (R/H)"
+  },
+  {
+   "default": "0",
+   "fieldname": "mirror_lh",
+   "fieldtype": "Check",
+   "label": "Mirror (L/H)"
+  },
+  {
+   "default": "0",
+   "fieldname": "charger",
+   "fieldtype": "Check",
+   "label": "Charger"
+  },
+  {
+   "default": "0",
+   "fieldname": "toolkit",
+   "fieldtype": "Check",
+   "label": "Toolkit"
+  },
+  {
+   "default": "0",
+   "fieldname": "service_book",
+   "fieldtype": "Check",
+   "label": "Service Book"
+  },
+  {
+   "default": "0",
+   "fieldname": "battery",
+   "fieldtype": "Check",
+   "label": "Battery"
+  },
+  {
+   "default": "0",
+   "fieldname": "horn",
+   "fieldtype": "Check",
+   "label": "Horn"
+  },
+  {
+   "default": "0",
+   "fieldname": "hl_bulb",
+   "fieldtype": "Check",
+   "label": "H/L Bulb"
+  },
+  {
+   "default": "0",
+   "fieldname": "il_bulb",
+   "fieldtype": "Check",
+   "label": "I/L Bulb"
+  },
+  {
+   "default": "0",
+   "fieldname": "tl_bulb",
+   "fieldtype": "Check",
+   "label": "T/L Bulb"
+  },
+  {
+   "default": "0",
+   "fieldname": "tyres_front",
+   "fieldtype": "Check",
+   "label": "Tyre Pressure Front"
+  },
+  {
+   "default": "0",
+   "fieldname": "tyres_rear",
+   "fieldtype": "Check",
+   "label": "Tyre Pressure Rear"
+  },
+  {
+   "default": "0",
+   "fieldname": "scratch_damages",
+   "fieldtype": "Check",
+   "label": "Scratch and Damages"
+  },
+  {
+   "fieldname": "test_parts_labour_section",
+   "fieldtype": "Tab Break",
+   "label": "Parts and Labour"
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Items Table",
+   "options": "Job Item"
+  },
+  {
+   "fieldname": "grand_total",
+   "fieldtype": "Currency",
+   "label": "Total Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "test_approval_section",
+   "fieldtype": "Tab Break",
+   "label": "Approval"
+  },
+  {
+   "default": "0",
+   "fieldname": "customer_approval",
+   "fieldtype": "Check",
+   "label": "Customer Approval"
+  },
+  {
+   "fieldname": "approval_date",
+   "fieldtype": "Datetime",
+   "label": "Approval Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "send_quote",
+   "fieldtype": "Button",
+   "label": "Send Quote to Customer"
+  },
+  {
+   "fieldname": "test_payments_section",
+   "fieldtype": "Tab Break",
+   "label": "Payments"
+  },
+  {
+   "fieldname": "payment_mode",
+   "fieldtype": "Select",
+   "label": "Payment Mode",
+   "options": "Cash\nUPI\nCard\nCredit"
+  },
+  {
+   "default": "0",
+   "fieldname": "payment_rcd",
+   "fieldtype": "Check",
+   "label": "Payment Received"
+  },
+  {
+   "fieldname": "column_break_ldce",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_xqdz",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_nggc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "spare_vehicle",
+   "fieldtype": "Check",
+   "label": "We Provided Spare Vehivle"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-03-08 11:21:35.056558",
+ "modified_by": "Administrator",
+ "module": "EV Workshop",
+ "name": "Job Master",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Supervisor",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Mechanic",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

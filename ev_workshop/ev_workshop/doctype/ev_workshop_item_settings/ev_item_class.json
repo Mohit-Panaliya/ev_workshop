@@ -1,0 +1,11 @@
+{
+ "custom_field": 1,
+ "dt": "Item",
+ "fieldname": "ev_item_class",
+ "label": "Item Class",
+ "fieldtype": "Select",
+ "insert_after": "ev_workshop_section",
+ "options": "Spare Part\nService\nConsumable",
+ "reqd": 0,
+ "description": "Classification for EV Workshop items"
+}

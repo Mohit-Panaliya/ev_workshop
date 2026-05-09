@@ -1,0 +1,4 @@
+# ERPNext dependencies will be automatically installed
+# when the app is installed on an ERPNext site
+frappe>=15.0.0
+erpnext>=15.0.0

@@ -1,0 +1,37 @@
+[
+ {
+  "custom_field": 1,
+  "dt": "Item",
+  "fieldname": "ev_tax_section",
+  "label": "EV Tax Details",
+  "fieldtype": "Column Break",
+  "insert_after": "ev_hsn_code"
+ },
+ {
+  "custom_field": 1,
+  "dt": "Item",
+  "fieldname": "ev_sgst_percent",
+  "label": "SGST (%)",
+  "fieldtype": "Percent",
+  "insert_after": "ev_tax_section",
+  "default": "0"
+ },
+ {
+  "custom_field": 1,
+  "dt": "Item",
+  "fieldname": "ev_cgst_percent",
+  "label": "CGST (%)",
+  "fieldtype": "Percent",
+  "insert_after": "ev_sgst_percent",
+  "default": "0"
+ },
+ {
+  "custom_field": 1,
+  "dt": "Item",
+  "fieldname": "ev_igst_percent",
+  "label": "IGST (%)",
+  "fieldtype": "Percent",
+  "insert_after": "ev_cgst_percent",
+  "default": "0"
+ }
+]

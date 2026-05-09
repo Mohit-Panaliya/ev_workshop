@@ -1,0 +1,10 @@
+{
+ "custom_field": 1,
+ "dt": "Item",
+ "fieldname": "ev_hsn_code",
+ "label": "HSN Code",
+ "fieldtype": "Data",
+ "insert_after": "ev_item_class",
+ "reqd": 0,
+ "description": "HSN Code for GST purposes"
+}
