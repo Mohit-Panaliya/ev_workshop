@@ -1,0 +1,23 @@
+{
+ "app": "ev_workshop",
+ "creation": "2026-05-11 21:00:25.857105",
+ "docstatus": 0,
+ "doctype": "Desktop Icon",
+ "hidden": 0,
+ "icon_type": "App",
+ "idx": 19,
+ "label": "EVHUB Sidebar",
+ "logo_url": "",
+ "modified": "2026-05-12 10:00:18.203364",
+ "modified_by": "Administrator",
+ "name": "EVHUB",
+ "owner": "Administrator",
+ "restrict_removal": 0,
+ "roles": [],
+ "standard": 1,
+ "icon": null,
+ "link_to": "EVHUB Sidebar",
+ "link_type": "Workspace Sidebar",
+ "sidebar": "EVHUB Sidebar",
+ "bg_color": "blue"
+}

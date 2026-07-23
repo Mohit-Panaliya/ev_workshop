@@ -1,0 +1,78 @@
+{
+ "app": "ev_workshop",
+ "creation": "2026-05-11 21:03:35.460715",
+ "docstatus": 0,
+ "doctype": "Workspace Sidebar",
+ "for_user": "",
+ "header_icon": "album",
+ "idx": 0,
+ "items": [
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "accessibility",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "EV Vehivle",
+   "link_to": "EV Vehicle",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "align-end-vertical",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Customer History",
+   "link_to": "Customer History Master",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "align-center-horizontal",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Item Master",
+   "link_to": "Item Master",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "alarm-smoke",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Job Item",
+   "link_to": "Job Item",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "alarm-clock-off",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Job Master",
+   "link_to": "Job Master",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-05-12 09:53:42.110141",
+ "modified_by": "Administrator",
+ "module": "EV Workshop",
+ "name": "EVHUB Sidebar",
+ "owner": "Administrator",
+ "standard": 1,
+ "title": "EVHUB Sidebar"
+}
