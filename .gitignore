@@ -1,4 +1,13 @@
 __pycache__/
-*.pyc
-*.pyo
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+*.egg
+node_modules/
+.idea/
+.vscode/
+*.swp
+*.swo
 .DS_Store
+Thumbs.db

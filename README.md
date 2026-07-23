@@ -1,33 +1,28 @@
-### EV Workshop
+# EV Workshop
 
-Ev workshop job cards app
+EV Workshop Management System for ERPNext. Manage job cards, vehicles, items, and customer history for electric vehicle service workshops.
 
-### Installation
+## Features
 
-You can install this app using the [bench](https://github.com/frappe/bench) CLI:
+- **Job Master** — Create and manage workshop job cards with stock entry on submit
+- **EV Vehicle** — Register and track electric vehicles
+- **Item Master** — Manage workshop inventory items
+- **Customer History Master** — Track customer service history
+- **EV Workshop Item Settings** — Configure item defaults and custom fields
+
+## Dependencies
+
+- frappe
+- erpnext
+- hrms
+
+## Installation
 
 ```bash
-cd $PATH_TO_YOUR_BENCH
-bench get-app $URL_OF_THIS_REPO --branch version-16
-bench install-app ev_workshop
+bench get-app https://github.com/Mohit-Panaliya/ev_workshop
+bench --site your-site install-app ev_workshop
 ```
 
-### Contributing
-
-This app uses `pre-commit` for code formatting and linting. Please [install pre-commit](https://pre-commit.com/#installation) and enable it for this repository:
-
-```bash
-cd apps/ev_workshop
-pre-commit install
-```
-
-Pre-commit is configured to use the following tools for checking and formatting your code:
-
-- ruff
-- eslint
-- prettier
-- pyupgrade
-
-### License
+## License
 
 mit
