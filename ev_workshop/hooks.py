@@ -54,6 +54,16 @@ fixtures = [
 ]
 
 # ============================================================================
+# Website routes (workshop PWA shell + SPA fallback)
+# ============================================================================
+# /workshop renders www/workshop.html (prebuilt SPA + manifest + CSRF boot).
+# Sub-paths (/workshop/jobs/...) return the same shell; vue-router resolves
+# the view client-side.
+website_route_rules = [
+	{"from_route": "/workshop/<path:app_path>", "to_route": "workshop"},
+]
+
+# ============================================================================
 # Includes (CSS/JS bundles loaded on every page)
 # ============================================================================
 # Uncomment when you create global CSS/JS files:
