@@ -60,7 +60,9 @@ fixtures = [
 # Sub-paths (/workshop/jobs/...) return the same shell; vue-router resolves
 # the view client-side.
 website_route_rules = [
+	{"from_route": "/workshop", "to_route": "workshop"},
 	{"from_route": "/workshop/<path:app_path>", "to_route": "workshop"},
+	{"from_route": "/evhub", "to_route": "workshop"},
 	{"from_route": "/evhub/<path:app_path>", "to_route": "workshop"},
 ]
 
