@@ -51,6 +51,7 @@ doc_events = {}
 # never exported.
 fixtures = [
 	{"dt": "Custom Field", "filters": [["module", "=", "EV Workshop"]]},
+	{"dt": "Print Format", "filters": [["module", "=", "EV Workshop"]]},
 ]
 
 # ============================================================================

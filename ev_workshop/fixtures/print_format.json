@@ -1,0 +1,29 @@
+[
+ {
+  "doctype": "Print Format",
+  "name": "EV Job Invoice",
+  "module": "EV Workshop",
+  "doc_type": "Sales Invoice",
+  "print_format_type": "Jinja",
+  "standard": "No",
+  "html": "<div style=\"font-family:sans-serif;max-width:760px;margin:auto\">\n<h2 style=\"text-align:center\">{{ doc.company }}</h2>\n<p style=\"text-align:center\">Tax Invoice &middot; {{ doc.name }} &middot; {{ doc.get_formatted('posting_date') }}</p>\n<hr>\n<p><b>Bill To:</b> {{ doc.customer }}{% if doc.job_reference %}<br><b>Job Ref:</b> {{ doc.job_reference }}{% endif %}</p>\n<table width=\"100%\" border=\"1\" cellspacing=\"0\" cellpadding=\"6\">\n<tr><th>#</th><th>Item</th><th>Qty</th><th>Rate</th><th>Amount</th></tr>\n{% for row in doc.items %}\n<tr><td>{{ loop.index }}</td><td>{{ row.item_name }}</td><td>{{ row.qty }}</td><td>{{ row.get_formatted('rate') }}</td><td>{{ row.get_formatted('amount') }}</td></tr>\n{% endfor %}\n</table>\n<p style=\"text-align:right\"><b>Total: {{ doc.get_formatted('grand_total') }}</b><br>Paid: {{ doc.get_formatted('paid_amount') }} &middot; Outstanding: {{ doc.get_formatted('outstanding_amount') }}</p>\n</div>"
+ },
+ {
+  "doctype": "Print Format",
+  "name": "EV Job Estimate",
+  "module": "EV Workshop",
+  "doc_type": "Job Master",
+  "print_format_type": "Jinja",
+  "standard": "No",
+  "html": "<div style=\"font-family:sans-serif;max-width:760px;margin:auto\">\n<h2 style=\"text-align:center\">Repair Estimate</h2>\n<p style=\"text-align:center\">{{ doc.name }} &middot; {{ doc.get_formatted('date') }} &middot; {{ doc.status }}</p>\n<hr>\n<p><b>Customer:</b> {{ doc.customer_name }} ({{ doc.mobile_no }})<br><b>Vehicle:</b> {{ doc.vehicle }} &middot; {{ doc.service_type }}</p>\n<p><b>Complaints:</b> {{ doc.complaints }}</p>\n<table width=\"100%\" border=\"1\" cellspacing=\"0\" cellpadding=\"6\">\n<tr><th>#</th><th>Part</th><th>Qty</th><th>Rate</th><th>Total</th></tr>\n{% for row in doc.items %}\n<tr><td>{{ loop.index }}</td><td>{{ row.item_name or row.item_no }}</td><td>{{ row.qty }}</td><td>{{ row.rate }}</td><td>{{ row.total_amount }}</td></tr>\n{% endfor %}\n</table>\n{% if doc.job_labours %}\n<h4>Labour</h4>\n<table width=\"100%\" border=\"1\" cellspacing=\"0\" cellpadding=\"6\">\n<tr><th>#</th><th>Service</th><th>Qty</th><th>Total</th></tr>\n{% for row in doc.job_labours %}\n<tr><td>{{ loop.index }}</td><td>{{ row.labour_master }}</td><td>{{ row.qty }}</td><td>{{ row.line_total }}</td></tr>\n{% endfor %}\n</table>\n{% endif %}\n<p style=\"text-align:right\"><b>Estimate Total: {{ doc.grand_total }}</b></p>\n<p><i>Valid 15 days. Final invoice may vary after inspection.</i></p>\n</div>"
+ },
+ {
+  "doctype": "Print Format",
+  "name": "EV Counter Receipt",
+  "module": "EV Workshop",
+  "doc_type": "Counter Invoice",
+  "print_format_type": "Jinja",
+  "standard": "No",
+  "html": "<div style=\"font-family:sans-serif;max-width:760px;margin:auto\">\n<h2 style=\"text-align:center\">Counter Sale Receipt</h2>\n<p style=\"text-align:center\">{{ doc.name }} &middot; {{ doc.get_formatted('invoice_date') }}</p>\n<hr>\n<p><b>Customer:</b> {{ doc.customer or doc.walkin_name }} {% if doc.walkin_mobile %}({{ doc.walkin_mobile }}){% endif %}</p>\n<table width=\"100%\" border=\"1\" cellspacing=\"0\" cellpadding=\"6\">\n<tr><th>#</th><th>Item</th><th>Qty</th><th>MRP</th><th>Total</th></tr>\n{% for row in doc.items %}\n<tr><td>{{ loop.index }}</td><td>{{ row.item_name or row.item_master }}</td><td>{{ row.qty }}</td><td>{{ row.mrp }}</td><td>{{ row.line_total }}</td></tr>\n{% endfor %}\n</table>\n<p style=\"text-align:right\">CGST: {{ doc.cgst_amount }} &middot; SGST: {{ doc.sgst_amount }}<br><b>Grand Total: {{ doc.grand_total }}</b></p>\n{% if doc.sales_invoice %}<p>Sales Invoice: {{ doc.sales_invoice }}</p>{% endif %}\n</div>"
+ }
+]
