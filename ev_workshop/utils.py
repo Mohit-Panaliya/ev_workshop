@@ -191,9 +191,23 @@ def ensure_erpnext_item(item_master_no):
 		frappe.throw(f"Item Master {item_master_no} not found.")
 
 	uom = master.uom or "Nos"
-	# HSN must exist in the GST HSN/SAC master; otherwise leave blank so the
-	# Item insert does not fail link validation.
-	hsn = master.hsn_code if master.hsn_code and frappe.db.exists("GST HSN Code", master.hsn_code) else None
+	# HSN must exist in the GST HSN/SAC master (India Compliance enforces
+	# it as mandatory). Fall back to the site's most-used HSN so auto
+	# provisioned items never fail validation.
+	hsn = None
+	if master.hsn_code and frappe.db.exists("GST HSN Code", master.hsn_code):
+		hsn = master.hsn_code
+	if not hsn:
+		hsn = frappe.db.sql(
+			"""select gst_hsn_code from `tabItem` where ifnull(gst_hsn_code, '') != ''
+			   group by gst_hsn_code order by count(*) desc limit 1"""
+		)
+		hsn = hsn[0][0] if hsn else None
+	if not hsn:
+		frappe.throw(
+			f"Item Master {item_master_no} has HSN '{master.hsn_code or ''}' which is not a valid "
+			"HSN/SAC Code, and no fallback HSN exists. Please fix the HSN on the Item Master."
+		)
 	item = frappe.get_doc(
 		{
 			"doctype": "Item",
