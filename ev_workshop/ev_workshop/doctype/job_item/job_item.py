@@ -36,10 +36,13 @@ class JobItem(Document):
 		"""
 		self.calculate_amounts()
 
-	def calculate_amounts(self):
+	def calculate_amounts(self, customer_type=None):
 		"""Calculate part amount, labor, tax, and total amount.
 
 		Server-side mirror of calculate_job_item_amounts() in job_master.js.
+		`customer_type` is passed by the parent during recompute (child
+		validate runs before the parent object is attached, so the child
+		never reaches back into a parent document).
 		"""
 		qty = flt(self.qty) or 1
 		rate = flt(self.rate) or 0
@@ -50,7 +53,7 @@ class JobItem(Document):
 
 		# Labor amount: only for Customer type, zero for Retailer
 		# Retailers get parts-only pricing (no fitting charge)
-		customer_type = self._get_customer_type()
+		customer_type = customer_type or self._get_customer_type()
 		self.labor_amount = 0 if customer_type == "Retailer" else qty * labor_cost
 
 		# Calculate GST on part amount only (labor is taxed separately if needed)
@@ -60,29 +63,12 @@ class JobItem(Document):
 		self.total_amount = self.amount + self.labor_amount + self.tax_amount
 
 	def _get_customer_type(self):
-		"""Get customer type from parent Job Master.
+		"""Customer type for labor pricing without touching parent objects.
 
-		Attempts multiple strategies to find the parent's customer_type:
-		1. Parent document in memory (primary path - works during normal save)
-		2. Form data (fast path during form submission from web)
-		3. Database lookup (fallback for server-side operations)
-
-		Returns:
-			str: "Customer" or "Retailer" (defaults to "Customer")
+		Looks up the saved parent; unsaved rows default to "Customer"
+		(the parent recompute passes its own type explicitly).
 		"""
 		if self.parenttype == "Job Master" and self.parent:
-			# Primary path: parent doc in memory (works for both normal save and recompute)
-			parent_doc = self.get_parent_doc()
-			if parent_doc and hasattr(parent_doc, 'customer_type') and parent_doc.customer_type:
-				return parent_doc.customer_type
-
-			# Fast path: form data during web request
-			if hasattr(frappe, 'local') and hasattr(frappe.local, 'form_dict'):
-				form_customer_type = frappe.local.form_dict.get('customer_type')
-				if form_customer_type:
-					return form_customer_type
-
-			# Fallback: direct DB lookup (for API/bulk operations)
 			customer_type = frappe.db.get_value("Job Master", self.parent, "customer_type")
 			if customer_type:
 				return customer_type

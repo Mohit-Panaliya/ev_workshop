@@ -51,7 +51,7 @@ class JobMaster(Document):
 		or API), because child validate may not fire again.
 		"""
 		for item in self.items or []:
-			item.calculate_amounts()
+			item.calculate_amounts(customer_type=self.customer_type or "Customer")
 		for labour in self.job_labours or []:
 			self.calculate_labour_line(labour)
 
