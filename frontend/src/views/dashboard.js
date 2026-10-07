@@ -16,7 +16,12 @@ export async function DashboardView() {
 
   const statusChips = Object.entries(d.today_by_status || {})
     .filter(([, c]) => c > 0)
-    .map(([s, c]) => statusBadge(JOB_STATUS_BADGES, s, JOB_STATUS_ICONS).replace(/(>[^<]*)$/, `: ${c}$1`))
+    .map(([s, c]) => {
+      const label = s.replace(/_/g, " ").replace(/\b\w/g, (x) => x.toUpperCase());
+      const ic = JOB_STATUS_ICONS[s] ? icon(JOB_STATUS_ICONS[s], "w-3.5 h-3.5") : "";
+      const color = JOB_STATUS_BADGES[s] || JOB_STATUS_BADGES.default;
+      return badge(color, `${ic}${label}: ${c}`);
+    })
     .join("");
 
   const recent = (d.recent || []).map(
