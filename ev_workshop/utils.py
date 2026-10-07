@@ -191,6 +191,9 @@ def ensure_erpnext_item(item_master_no):
 		frappe.throw(f"Item Master {item_master_no} not found.")
 
 	uom = master.uom or "Nos"
+	# HSN must exist in the GST HSN/SAC master; otherwise leave blank so the
+	# Item insert does not fail link validation.
+	hsn = master.hsn_code if master.hsn_code and frappe.db.exists("GST HSN Code", master.hsn_code) else None
 	item = frappe.get_doc(
 		{
 			"doctype": "Item",
@@ -201,7 +204,7 @@ def ensure_erpnext_item(item_master_no):
 			"stock_uom": uom,
 			"is_stock_item": 1 if (master.item_class == "Spare Part") else 0,
 			"standard_rate": flt(master.standard_rate),
-			"gst_hsn_code": master.hsn_code,
+			"gst_hsn_code": hsn,
 			"ev_item_class": master.item_class,
 			"ev_hsn_code": master.hsn_code,
 			"ev_sgst_percent": flt(master.sgst_percent),
