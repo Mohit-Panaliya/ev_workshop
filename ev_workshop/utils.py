@@ -181,9 +181,17 @@ def ensure_erpnext_item(item_master_no):
 	if frappe.db.exists("Item", item_master_no):
 		return item_master_no
 
+	# Look up by the item_no business key: older records carry random
+	# document names, so resolve the name before reading fields.
+	master_name = frappe.db.get_value("Item Master", {"item_no": item_master_no}, "name")
+	if not master_name and frappe.db.exists("Item Master", item_master_no):
+		master_name = item_master_no
+	if not master_name:
+		frappe.throw(f"Item Master {item_master_no} not found.")
+
 	master = frappe.db.get_value(
 		"Item Master",
-		item_master_no,
+		master_name,
 		["item_name", "item_class", "uom", "standard_rate", "hsn_code", "sgst_percent", "cgst_percent", "igst_percent"],
 		as_dict=True,
 	)
