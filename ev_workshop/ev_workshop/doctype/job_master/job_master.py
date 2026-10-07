@@ -43,15 +43,29 @@ class JobMaster(Document):
 			self.company = frappe.defaults.get_user_default("company") or frappe.db.get_default("company")
 
 	def recompute_child_amounts(self):
-		"""Recompute amount, labor_amount, tax_amount, total_amount on each child row.
+		"""Recompute amounts on part rows and labour rows.
 
-		This is needed when the parent's customer_type changes server-side (e.g., via
-		bulk update or API), because the child table's validate may not fire again.
-		
-		Instead of duplicating logic, we delegate to each child's calculate_amounts().
+		Part rows delegate to their own calculate_amounts(); labour rows are
+		rate x qty plus the master's GST when taxable. Needed when the
+		parent's customer_type changes server-side (e.g., via bulk update
+		or API), because child validate may not fire again.
 		"""
 		for item in self.items or []:
 			item.calculate_amounts()
+		for labour in self.job_labours or []:
+			self.calculate_labour_line(labour)
+
+	def calculate_labour_line(self, labour):
+		"""line_total = rate x qty (+ GST when the master is taxable)."""
+		base = flt(labour.rate) * flt(labour.qty)
+		gst = 0.0
+		if labour.labour_master:
+			master = frappe.db.get_value(
+				"Labour Master", labour.labour_master, ["taxable", "gst_rate"], as_dict=True
+			)
+			if master and master.taxable:
+				gst = base * flt(master.gst_rate) / 100
+		labour.line_total = base + gst
 
 	def validate_vehicle_ownership(self):
 		"""Ensure vehicle ownership is selected before saving."""
@@ -79,8 +93,8 @@ class JobMaster(Document):
 					"Please assign a Supervisor or Mechanic in Allocation tab before proceeding!"
 				)
 
-		# Prevent adding parts before inspection is complete
-		if self.status == "Admitted" and self.items:
+		# Prevent adding parts/labour before inspection is complete
+		if self.status == "Admitted" and (self.items or self.job_labours):
 			frappe.throw("Please complete inspection first before adding parts/labour.")
 
 		# Inspection: must check at least one item
@@ -118,15 +132,18 @@ class JobMaster(Document):
 			self.approval_date = now_datetime()
 
 	def calculate_grand_total(self):
-		"""Calculate grand total by summing all child item total_amounts.
+		"""Grand total = parts total + labour total.
 
-		The individual item amounts (amount, labor_amount, tax_amount, total_amount)
-		are computed by recompute_child_amounts() which runs before this method.
+		Part-line math lives in recompute_child_amounts(); labour lines are
+		added here so the header always reflects both.
 		"""
 		total = flt(0)
 
 		for item in self.items or []:
 			total += flt(item.total_amount)
+
+		for labour in self.job_labours or []:
+			total += flt(labour.line_total)
 
 		self.grand_total = total
 

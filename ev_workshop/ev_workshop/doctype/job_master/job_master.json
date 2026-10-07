@@ -41,6 +41,7 @@
   "spare_vehicle",
   "parts_labour_tab",
   "items",
+  "job_labours",
   "grand_total",
   "approval_tab",
   "customer_approval",
@@ -247,6 +248,12 @@
    "fieldtype": "Table",
    "label": "Items Table",
    "options": "Job Item"
+  },
+  {
+   "fieldname": "job_labours",
+   "fieldtype": "Table",
+   "label": "Labour Lines",
+   "options": "Job Labour"
   },
   {
    "fieldname": "grand_total",

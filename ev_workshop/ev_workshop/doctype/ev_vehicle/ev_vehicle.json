@@ -8,6 +8,7 @@
  "field_order": [
   "registration_no",
   "model",
+  "vehicle_model",
   "chassis_no",
   "motor_no",
   "battery_no",
@@ -30,6 +31,13 @@
    "in_list_view": 1,
    "label": "Model",
    "reqd": 1
+  },
+  {
+   "fieldname": "vehicle_model",
+   "fieldtype": "Link",
+   "label": "Vehicle Model (Catalog)",
+   "options": "Vehicle Model",
+   "in_list_view": 1
   },
   {
    "fieldname": "chassis_no",

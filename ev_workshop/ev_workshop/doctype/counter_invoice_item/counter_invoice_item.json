@@ -1,0 +1,106 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "autoincrement",
+ "creation": "2026-10-07 00:00:00",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "item_master",
+  "item_name",
+  "qty",
+  "mrp",
+  "discount_percent",
+  "line_total",
+  "sgst_percent",
+  "cgst_percent",
+  "igst_percent",
+  "tax_amount"
+ ],
+ "fields": [
+  {
+   "fieldname": "item_master",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Item",
+   "options": "Item Master",
+   "reqd": 1
+  },
+  {
+   "fieldname": "item_name",
+   "fieldtype": "Data",
+   "fetch_from": "item_master.item_name",
+   "in_list_view": 1,
+   "label": "Item Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "qty",
+   "fieldtype": "Float",
+   "default": "1.0",
+   "in_list_view": 1,
+   "label": "Qty",
+   "reqd": 1
+  },
+  {
+   "fieldname": "mrp",
+   "fieldtype": "Currency",
+   "fetch_from": "item_master.standard_rate",
+   "in_list_view": 1,
+   "label": "MRP",
+   "reqd": 1
+  },
+  {
+   "fieldname": "discount_percent",
+   "fieldtype": "Percent",
+   "default": "0",
+   "label": "Discount %"
+  },
+  {
+   "fieldname": "line_total",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Line Total",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sgst_percent",
+   "fieldtype": "Percent",
+   "fetch_from": "item_master.sgst_percent",
+   "label": "SGST %"
+  },
+  {
+   "fieldname": "cgst_percent",
+   "fieldtype": "Percent",
+   "fetch_from": "item_master.cgst_percent",
+   "label": "CGST %"
+  },
+  {
+   "fieldname": "igst_percent",
+   "fieldtype": "Percent",
+   "fetch_from": "item_master.igst_percent",
+   "label": "IGST %"
+  },
+  {
+   "fieldname": "tax_amount",
+   "fieldtype": "Currency",
+   "label": "Tax Amount",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "idx": 1,
+ "is_submittable": 0,
+ "istable": 1,
+ "links": [],
+ "module": "EV Workshop",
+ "name": "Counter Invoice Item",
+ "naming_rule": "Autoincrement",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "idx",
+ "sort_order": "ASC",
+ "states": []
+}

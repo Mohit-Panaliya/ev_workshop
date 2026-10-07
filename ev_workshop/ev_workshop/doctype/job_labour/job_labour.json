@@ -1,0 +1,70 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "autoincrement",
+ "creation": "2026-10-07 00:00:00",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "labour_master",
+  "technician",
+  "rate",
+  "qty",
+  "line_total"
+ ],
+ "fields": [
+  {
+   "fieldname": "labour_master",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Labour",
+   "options": "Labour Master",
+   "reqd": 1
+  },
+  {
+   "fieldname": "technician",
+   "fieldtype": "Link",
+   "label": "Technician",
+   "options": "Employee"
+  },
+  {
+   "fieldname": "rate",
+   "fieldtype": "Currency",
+   "fetch_from": "labour_master.standard_rate",
+   "in_list_view": 1,
+   "label": "Rate",
+   "reqd": 1
+  },
+  {
+   "fieldname": "qty",
+   "fieldtype": "Float",
+   "default": "1.0",
+   "in_list_view": 1,
+   "label": "Qty",
+   "reqd": 1
+  },
+  {
+   "fieldname": "line_total",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Line Total",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "idx": 1,
+ "is_submittable": 0,
+ "istable": 1,
+ "links": [],
+ "module": "EV Workshop",
+ "name": "Job Labour",
+ "naming_rule": "Autoincrement",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "idx",
+ "sort_order": "ASC",
+ "states": [],
+ "track_changes": 1
+}

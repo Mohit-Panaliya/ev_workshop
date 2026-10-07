@@ -78,6 +78,11 @@ def build_quote_message(doc):
 			lines.append(f"   Qty: {flt(item.qty)} x Rs. {flt(item.rate)}")
 		lines.append(f"   Total: Rs. {flt(item.total_amount)}")
 		lines.append("")
+	if getattr(doc, "job_labours", None):
+		lines.append("*LABOUR:*")
+		for lb in doc.job_labours:
+			lines.append(f"{lb.labour_master} x {flt(lb.qty)} = Rs. {flt(lb.line_total)}")
+		lines.append("")
 	lines += [
 		"```",
 		f"*GRAND TOTAL: Rs. {flt(doc.grand_total)}*",
@@ -126,6 +131,58 @@ def get_company_abbr(company=None):
 	if not company:
 		return None
 	return frappe.db.get_value("Company", company, "abbr") or None
+
+
+def ensure_service_item(labour_master_no):
+	"""Return ERPNext ``Item`` code for a Labour Master, creating it.
+
+	Service items are non-stock; rate/HSN/GST carried from the master so
+	Sales Invoice lines for labour post correctly.
+	"""
+	code = f"LABOUR-{labour_master_no}"
+	if frappe.db.exists("Item", code):
+		return code
+
+	master = frappe.db.get_value(
+		"Labour Master",
+		labour_master_no,
+		["service_name", "standard_rate", "hsn_sac_code", "gst_rate", "taxable"],
+		as_dict=True,
+	)
+	if not master:
+		frappe.throw(f"Labour Master {labour_master_no} not found.")
+
+	hsn = None
+	if master.hsn_sac_code and frappe.db.exists("GST HSN Code", master.hsn_sac_code):
+		hsn = master.hsn_sac_code
+	if not hsn:
+		hsn = frappe.db.sql(
+			"""select gst_hsn_code from `tabItem` where ifnull(gst_hsn_code, '') != ''
+			   group by gst_hsn_code order by count(*) desc limit 1"""
+		)
+		hsn = hsn[0][0] if hsn else None
+	if not hsn:
+		frappe.throw(
+			f"Labour Master {labour_master_no} needs a valid HSN/SAC code, "
+			"and no fallback HSN exists on site."
+		)
+
+	item = frappe.get_doc(
+		{
+			"doctype": "Item",
+			"item_code": code,
+			"item_name": master.service_name or labour_master_no,
+			"item_group": frappe.db.get_single_value("Stock Settings", "item_group")
+			or "All Item Groups",
+			"stock_uom": "Nos",
+			"is_stock_item": 0,
+			"standard_rate": flt(master.standard_rate),
+			"gst_hsn_code": hsn,
+			"ev_item_class": "Service",
+		}
+	)
+	item.insert(ignore_permissions=False)
+	return item.name
 
 
 def resolve_job_customer(doc):

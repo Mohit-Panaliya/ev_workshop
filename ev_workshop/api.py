@@ -30,6 +30,7 @@ from ev_workshop.utils import (
 	build_quote_message,
 	build_ready_message,
 	ensure_erpnext_item,
+	ensure_service_item,
 	get_company,
 	get_or_create_customer,
 	normalize_mobile,
@@ -153,6 +154,18 @@ def _build_invoice_items(doc):
 				"income_account": income_account,
 				"cost_center": cost_center,
 			})
+
+	# Labour lines from the Job Labour table (always included)
+	for labour in doc.get("job_labours") or []:
+		invoice_items.append({
+			"item_code": ensure_service_item(labour.labour_master),
+			"item_name": labour.labour_master,
+			"qty": labour.qty,
+			"rate": labour.rate,
+			"amount": labour.line_total,
+			"income_account": income_account,
+			"cost_center": cost_center,
+		})
 
 	return invoice_items
 
