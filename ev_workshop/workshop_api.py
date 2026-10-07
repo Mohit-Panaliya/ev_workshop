@@ -730,6 +730,13 @@ def record_payment(data):
 			"company": si.company,
 			"posting_date": data.get("payment_date") or today(),
 			"mode_of_payment": data.get("mode_of_payment") or "Cash",
+			"paid_from": frappe.db.get_value("Company", si.company, "default_receivable_account"),
+			"paid_to": frappe.db.get_value(
+				"Account", {"company": si.company, "account_type": "Cash", "is_group": 0}, "name"
+			)
+			or frappe.db.get_value(
+				"Account", {"company": si.company, "account_type": "Bank", "is_group": 0}, "name"
+			),
 			"paid_amount": amount,
 			"received_amount": amount,
 			"source_exchange_rate": 1,
