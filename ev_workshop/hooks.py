@@ -131,12 +131,23 @@ required_apps = ["hrms", "erpnext", "frappe"]
 # Document Events
 # ---------------
 # Hook on document methods and events
+# NOTE: Job Master is not submittable, so there are no submit hooks.
+# Workflow guards live in JobMaster.validate(); stock/invoice actions are
+# explicit whitelisted calls (api.create_job_invoice, JobMaster.create_stock_entry).
+#
+# doc_events = {
+# 	"Job Master": {
+# 		"validate": "ev_workshop.ev_workshop.doctype.job_master.job_master.on_job_master_validate"
+# 	}
+# }
 
-doc_events = {
-	"Job Master": {
-		"on_submit": "ev_workshop.ev_workshop.doctype.job_master.job_master.create_stock_entry"
-	}
-}
+# Fixtures — synced to every site on install/migrate. Custom fields the app
+# depends on (Item EV fields, Sales Invoice job_reference) must live here so
+# fresh installs work without manual Customize Form steps. Filtered to this
+# app's module so other apps' fields are never exported.
+fixtures = [
+	{"dt": "Custom Field", "filters": [["module", "=", "EV Workshop"]]},
+]
 
 # Scheduled Tasks
 # ---------------

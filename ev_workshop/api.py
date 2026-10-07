@@ -1,23 +1,49 @@
 import frappe
-from frappe.model.mapper import get_mapped_doc
+
+from ev_workshop.utils import (
+	build_quote_message,
+	build_ready_message,
+	get_company,
+	get_or_create_customer,
+	whatsapp_share_url,
+)
+
+#: Hard cap for item lookups so a crafted `limit` cannot dump the table.
+MAX_LOOKUP_LIMIT = 100
+
+
+def _job_doc(docname):
+	"""Load a Job Master with a read-permission check."""
+	if not frappe.has_permission("Job Master", "read", docname):
+		frappe.throw("Not permitted to access this Job Master.", frappe.PermissionError)
+	return frappe.get_doc("Job Master", docname)
+
 
 @frappe.whitelist()
 def get_erpnext_items(item_class=None, search_text=None, limit=50):
 	"""
-	Fetch items from ERPNext Item doctype for invoicing
+	Fetch items from ERPNext Item doctype for invoicing.
 	Usage: frappe.call('ev_workshop.api.get_erpnext_items', {'item_class': 'Spare Part'})
+
+	Requires the ``ev_*`` Custom Fields on Item (shipped as fixtures).
 	"""
+	try:
+		limit = min(int(limit or 50), MAX_LOOKUP_LIMIT)
+	except (TypeError, ValueError):
+		limit = 50
+
 	filters = {"disabled": 0}
-	
+
 	# Filter by item class if provided (custom field)
 	if item_class:
 		filters["ev_item_class"] = item_class
-	
-	# Search by item code or name
+
+	# Search by item code or name (escape LIKE wildcards)
 	if search_text:
-		filters["item_code"] = ["like", f"%{search_text}%"]
-	
-	items = frappe.get_all(
+		safe = str(search_text).replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+		filters["item_code"] = ["like", f"%{safe}%"]
+
+	return frappe.get_all(
 		"Item",
 		fields=[
 			"name",
@@ -30,202 +56,113 @@ def get_erpnext_items(item_class=None, search_text=None, limit=50):
 			"ev_hsn_code",
 			"ev_sgst_percent",
 			"ev_cgst_percent",
-			"ev_igst_percent"
+			"ev_igst_percent",
 		],
 		filters=filters,
 		order_by="item_name",
-		limit=limit
+		limit=limit,
 	)
-	
-	return items
+
 
 @frappe.whitelist()
 def send_quote_whatsapp(docname):
-	"""Send quote via WhatsApp to customer"""
-	doc = frappe.get_doc("Job Master", docname)
-	
-	# Validate items exist
+	"""Return a WhatsApp share URL with the job quote (does not send)."""
+	doc = _job_doc(docname)
+
 	if not doc.items:
 		frappe.throw("Please add at least one item in the Parts and Labour table before sending quote.")
-	
-	# Get customer mobile number
-	mobile = doc.mobile_no
-	if not mobile:
-		frappe.throw("Customer mobile number is not available. Please update the customer details.")
-	
-	# Clean mobile number (remove spaces, plus, etc.)
-	mobile = ''.join(filter(str.isdigit, mobile))
-	if mobile.startswith("0"):
-		mobile = mobile[1:]
-	if not mobile.startswith("91"):
-		mobile = "91" + mobile
-	
-	# Build WhatsApp message
-	message = f"*QUOTE - {doc.name}*\n\n"
-	message += f"*Customer:* {doc.customer_name}\n"
-	message += f"*Service Type:* {doc.service_type}\n\n"
-	message += "*ITEMS:*\n"
-	message += "```\n"
-	
-	for item in doc.items:
-		item_name = item.item_name or item.item_no
-		message += f"{item_name}\n"
-		message += f"   Qty: {item.qty} x Rs. {item.rate}\n"
-		message += f"   Total: Rs. {item.total_amount}\n\n"
-	
-	message += "```\n"
-	message += f"*GRAND TOTAL: Rs. {doc.grand_total}*\n\n"
-	message += "Please approve to proceed with repair."
-	
-	# URL encode the message
-	import urllib.parse
-	encoded_message = urllib.parse.quote(message)
-	
-	# Generate WhatsApp Web URL
-	whatsapp_url = f"https://web.whatsapp.com/send?phone={mobile}&text={encoded_message}"
-	
-	return {
-		"url": whatsapp_url,
-		"message": message
-	}
+
+	message = build_quote_message(doc)
+	return {"url": whatsapp_share_url(doc.mobile_no, message), "message": message}
+
 
 @frappe.whitelist()
 def send_ready_notification(docname):
-	"""Send vehicle ready notification via WhatsApp"""
-	doc = frappe.get_doc("Job Master", docname)
-	
-	# Get customer mobile number
-	mobile = doc.mobile_no
-	if not mobile:
-		frappe.throw("Customer mobile number is not available.")
-	
-	# Clean mobile number
-	mobile = ''.join(filter(str.isdigit, mobile))
-	if mobile.startswith("0"):
-		mobile = mobile[1:]
-	if not mobile.startswith("91"):
-		mobile = "91" + mobile
-	
-	# Build WhatsApp message
-	message = f"*Vehicle Ready - {doc.name}*\n\n"
-	message += f"*Customer:* {doc.customer_name}\n"
-	message += f"*Service Type:* {doc.service_type}\n\n"
-	message += "*Work Completed:*\n"
-	message += "```\n"
-	
-	for item in doc.items:
-		item_name = item.item_name or item.item_no
-		message += f"{item_name} - Rs. {item.total_amount}\n"
-	
-	message += "```\n"
-	message += f"*Total Amount: Rs. {doc.grand_total}*\n\n"
-	message += "Please visit to collect your vehicle. Payment pending."
-	
-	# URL encode the message
-	import urllib.parse
-	encoded_message = urllib.parse.quote(message)
-	
-	# Generate WhatsApp Web URL
-	whatsapp_url = f"https://web.whatsapp.com/send?phone={mobile}&text={encoded_message}"
-	
-	return {
-		"url": whatsapp_url,
-		"message": message
-	}
+	"""Return a WhatsApp share URL with the vehicle-ready note (does not send)."""
+	doc = _job_doc(docname)
+
+	message = build_ready_message(doc)
+	return {"url": whatsapp_share_url(doc.mobile_no, message), "message": message}
+
 
 @frappe.whitelist()
 def make_invoice(source_name, target_doc=None):
 	"""
-	Create a Sales Invoice from Job Master
-	This is called from the "Create Invoice" button in Job Master
+	Draft a Sales Invoice from Job Master (returns unsaved mapped doc).
+	Called from the "Create Invoice" button in Job Master.
 	"""
+	from frappe.model.mapper import get_mapped_doc
+
+	if not frappe.has_permission("Job Master", "read", source_name):
+		frappe.throw("Not permitted to access this Job Master.", frappe.PermissionError)
+	if not frappe.has_permission("Sales Invoice", "create"):
+		frappe.throw("Not permitted to create a Sales Invoice.", frappe.PermissionError)
+
 	def set_missing_values(source, target):
-		target.customer = frappe.db.get_value("Customer History Master", source.history_no, "customer_name")
-		target.company = frappe.defaults.get_user_default("company") or frappe.db.get_default("company")
-		
-		# Get customer details from history
 		customer_name = frappe.db.get_value("Customer History Master", source.history_no, "customer_name")
-		if customer_name:
-			# Try to find existing customer
-			customer = frappe.db.exists("Customer", {"customer_name": customer_name})
-			if customer:
-				target.customer = customer
-			else:
-				# Create new customer if not exists
-				new_customer = frappe.get_doc({
-					"doctype": "Customer",
-					"customer_name": customer_name,
-					"customer_type": "Individual",
-					"naming_series": "CUST-.YYYY.-"
-				})
-				try:
-					new_customer.insert()
-					target.customer = new_customer.name
-				except:
-					pass
-		
-		# Calculate total
-		target.total = source.grand_total
-	
-	doc = get_mapped_doc("Job Master", source_name, {
-		"Job Master": {
-			"doctype": "Sales Invoice",
-			"field_map": {
-				"name": "job_reference",
-				"grand_total": "total"
-			}
-		}
-	}, target_doc, set_missing_values)
-	
+		target.customer = get_or_create_customer(customer_name)
+		target.company = get_company()
+		# NOTE: grand_total is informational only; Sales Invoice computes
+		# its own taxes from the mapped items on save.
+		target.job_reference = source.name
+
+	doc = get_mapped_doc(
+		"Job Master",
+		source_name,
+		{
+			"Job Master": {
+				"doctype": "Sales Invoice",
+				"field_map": {"name": "job_reference"},
+			},
+			"Job Item": {
+				"doctype": "Sales Invoice Item",
+				"field_map": {"item_no": "item_code"},
+			},
+		},
+		target_doc,
+		set_missing_values,
+	)
+
 	return doc
+
 
 @frappe.whitelist()
 def create_job_invoice(docname):
-    """Create Sales Invoice from Job Master"""
-    doc = frappe.get_doc("Job Master", docname)
-    
-    if not doc.items:
-        return None
-    
-    try:
-        customer_name = frappe.db.get_value("Customer History Master", doc.history_no, "customer_name")
-        
-        # Find or create customer
-        customer = frappe.db.exists("Customer", {"customer_name": customer_name})
-        if not customer:
-            new_customer = frappe.get_doc({
-                "doctype": "Customer",
-                "customer_name": customer_name,
-                "customer_type": "Individual",
-                "naming_series": "CUST-.YYYY.-"
-            })
-            new_customer.insert()
-            customer = new_customer.name
-        
-        company = frappe.defaults.get_user_default("company") or frappe.db.get_default("company")
-        
-        # Create Sales Invoice
-        si = frappe.get_doc({
-            "doctype": "Sales Invoice",
-            "customer": customer,
-            "company": company,
-            "due_date": doc.date,
-            "job_reference": doc.name,
-            "items": [
-                {
-                    "item_code": item.item_no,
-                    "item_name": item.item_name,
-                    "qty": item.qty,
-                    "rate": item.rate,
-                    "amount": item.amount,
-                    "income_account": "Sales - EI",
-                    "cost_center": "Main - EI"
-                } for item in doc.items
-            ]
-        })
-        si.insert()
-        si.submit()
-        return si.name
-    except Exception as e:
-        frappe.log_error(f"Invoice Creation Failed: {str(e)}", "Job Master Invoice")
-        return None
+	"""Create + submit a Sales Invoice from Job Master. Returns invoice name."""
+	if not frappe.has_permission("Job Master", "read", docname):
+		frappe.throw("Not permitted to access this Job Master.", frappe.PermissionError)
+	if not frappe.has_permission("Sales Invoice", "create"):
+		frappe.throw("Not permitted to create a Sales Invoice.", frappe.PermissionError)
+
+	doc = frappe.get_doc("Job Master", docname)
+
+	if not doc.items:
+		frappe.throw("Cannot create an invoice without items.")
+
+	customer_name = frappe.db.get_value("Customer History Master", doc.history_no, "customer_name")
+	customer = get_or_create_customer(customer_name)
+	company = get_company()
+	if not company:
+		frappe.throw("Please set a default Company before creating invoices.")
+
+	si = frappe.get_doc(
+		{
+			"doctype": "Sales Invoice",
+			"customer": customer,
+			"company": company,
+			"due_date": doc.date,
+			"job_reference": doc.name,
+			"items": [
+				{
+					"item_code": item.item_no,
+					"item_name": item.item_name,
+					"qty": item.qty,
+					"rate": item.rate,
+				}
+				for item in doc.items
+			],
+		}
+	)
+	si.insert()
+	si.submit()
+	return si.name

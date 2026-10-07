@@ -10,18 +10,18 @@
   "history_no",
   "customer_name",
   "mobile_no",
-  "column_break_ldce",
+  "allocation_column_break",
   "service_type",
   "km_reading",
   "status",
   "urgent",
-  "section_break_xqdz",
+  "inspection_section_break",
   "complaints",
-  "test_allocation_section",
+  "allocation_tab",
   "supervisor",
   "mechanic",
   "amended_from",
-  "test_inspection_section",
+  "inspection_tab",
   "mirror_rh",
   "mirror_lh",
   "charger",
@@ -29,7 +29,7 @@
   "service_book",
   "battery",
   "horn",
-  "column_break_nggc",
+  "inspection_column_break",
   "hl_bulb",
   "il_bulb",
   "tl_bulb",
@@ -37,14 +37,14 @@
   "tyres_rear",
   "scratch_damages",
   "spare_vehicle",
-  "test_parts_labour_section",
+  "parts_labour_tab",
   "items",
   "grand_total",
-  "test_approval_section",
+  "approval_tab",
   "customer_approval",
   "approval_date",
   "send_quote",
-  "test_payments_section",
+  "payments_tab",
   "payment_mode",
   "payment_rcd"
  ],
@@ -111,7 +111,7 @@
    "reqd": 1
   },
   {
-   "fieldname": "test_allocation_section",
+   "fieldname": "allocation_tab",
    "fieldtype": "Tab Break",
    "label": "Allocation"
   },
@@ -138,7 +138,7 @@
    "search_index": 1
   },
   {
-   "fieldname": "test_inspection_section",
+   "fieldname": "inspection_tab",
    "fieldtype": "Tab Break",
    "label": "Inspection"
   },
@@ -221,7 +221,7 @@
    "label": "Scratch and Damages"
   },
   {
-   "fieldname": "test_parts_labour_section",
+   "fieldname": "parts_labour_tab",
    "fieldtype": "Tab Break",
    "label": "Parts and Labour"
   },
@@ -238,7 +238,7 @@
    "read_only": 1
   },
   {
-   "fieldname": "test_approval_section",
+   "fieldname": "approval_tab",
    "fieldtype": "Tab Break",
    "label": "Approval"
   },
@@ -260,7 +260,7 @@
    "label": "Send Quote to Customer"
   },
   {
-   "fieldname": "test_payments_section",
+   "fieldname": "payments_tab",
    "fieldtype": "Tab Break",
    "label": "Payments"
   },
@@ -277,22 +277,22 @@
    "label": "Payment Received"
   },
   {
-   "fieldname": "column_break_ldce",
+   "fieldname": "allocation_column_break",
    "fieldtype": "Column Break"
   },
   {
-   "fieldname": "section_break_xqdz",
+   "fieldname": "inspection_section_break",
    "fieldtype": "Section Break"
   },
   {
-   "fieldname": "column_break_nggc",
+   "fieldname": "inspection_column_break",
    "fieldtype": "Column Break"
   },
   {
    "default": "0",
    "fieldname": "spare_vehicle",
    "fieldtype": "Check",
-   "label": "We Provided Spare Vehivle"
+   "label": "We Provided Spare Vehicle"
   }
  ],
  "grid_page_length": 50,

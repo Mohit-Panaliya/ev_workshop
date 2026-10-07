@@ -9,8 +9,8 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
 setup(
     name="ev_workshop",
     version="0.0.1",
-    author="EV Workshop",
-    author_email="info@evworkshop.com",
+    author="Mohit Panaliya",
+    author_email="mohitpanaliya0@gmail.com",
     description="EV Workshop Management System for ERPNext",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -18,10 +18,10 @@ setup(
     zip_safe=False,
     include_package_data=True,
     install_requires=requirements,
-    python_requires=">=3.10",
+    python_requires=">=3.14",
     classifiers=[
         "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: GNU General Public License (GPL)",
+        "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
 )
