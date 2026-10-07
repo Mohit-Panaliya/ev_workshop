@@ -4,6 +4,14 @@ import Login from "./views/Login.vue"
 import Dashboard from "./views/Dashboard.vue"
 import Jobs from "./views/Jobs.vue"
 import JobDetail from "./views/JobDetail.vue"
+import Counters from "./views/Counters.vue"
+import CounterDetail from "./views/CounterDetail.vue"
+import Labour from "./views/Labour.vue"
+import Catalog from "./views/Catalog.vue"
+import Payments from "./views/Payments.vue"
+import Customers from "./views/Customers.vue"
+import CustomerDetail from "./views/CustomerDetail.vue"
+import Analytics from "./views/Analytics.vue"
 
 export const BASE = window.location.pathname.startsWith("/evhub") ? "/evhub" : "/workshop"
 
@@ -13,6 +21,14 @@ function makeRoutes(base) {
     { path: base, component: Dashboard },
     { path: `${base}/jobs`, component: Jobs },
     { path: `${base}/jobs/:name`, component: JobDetail, props: true },
+    { path: `${base}/counters`, component: Counters },
+    { path: `${base}/counters/:name`, component: CounterDetail, props: true },
+    { path: `${base}/labour`, component: Labour },
+    { path: `${base}/catalog`, component: Catalog },
+    { path: `${base}/payments`, component: Payments },
+    { path: `${base}/customers`, component: Customers },
+    { path: `${base}/customers/:name`, component: CustomerDetail, props: true },
+    { path: `${base}/analytics`, component: Analytics },
   ]
 }
 

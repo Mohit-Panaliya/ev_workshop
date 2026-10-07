@@ -41,6 +41,16 @@ export const workshop = {
   job: (name) => call("ev_workshop.workshop_api.get_job_detail", { name }),
   advance: (name, to_status) =>
     call("ev_workshop.workshop_api.advance_status", { name, to_status }, { httpMethod: "POST", useGet: false }),
+  counters: (p) => call("ev_workshop.workshop_api.get_counter_invoices", p || {}),
+  counter: (name) => call("ev_workshop.workshop_api.get_counter_invoice", { name }),
+  labour: (p) => call("ev_workshop.workshop_api.get_labour_masters", p || {}),
+  catalog: () => call("ev_workshop.workshop_api.get_catalog"),
+  payments: (p) => call("ev_workshop.workshop_api.get_payments", p || {}),
+  customers: (p) => call("ev_workshop.workshop_api.get_customers", p || {}),
+  customer: (customer) => call("ev_workshop.workshop_api.get_customer_profile", { customer }),
+  statement: (customer, from_date, to_date) =>
+    call("ev_workshop.workshop_api.get_customer_statement", { customer, from_date, to_date }),
+  analytics: () => call("ev_workshop.workshop_api.get_analytics"),
   quoteUrl: (docname) => call("ev_workshop.api.send_quote_whatsapp", { docname }, { httpMethod: "POST", useGet: false }),
   readyUrl: (docname) => call("ev_workshop.api.send_ready_notification", { docname }, { httpMethod: "POST", useGet: false }),
 };

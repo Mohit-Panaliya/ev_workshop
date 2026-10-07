@@ -28,6 +28,16 @@
         </ion-list>
         <h3>Total: ₹{{ job.grand_total }}</h3>
 
+        <div v-if="(job.job_labours || []).length">
+          <h3>Labour ({{ job.job_labours.length }})</h3>
+          <ion-list>
+            <ion-item v-for="(lb, i) in job.job_labours" :key="i">
+              <ion-label><h2>{{ lb.labour_master }} × {{ lb.qty }}</h2></ion-label>
+              <b slot="end">₹{{ lb.line_total }}</b>
+            </ion-item>
+          </ion-list>
+        </div>
+
         <div v-if="allowed.length">
           <h3>Next step</h3>
           <ion-button v-for="s in allowed" :key="s" expand="block" :disabled="busy" @click="advance(s)">
@@ -35,6 +45,8 @@
           </ion-button>
         </div>
         <ion-button expand="block" fill="outline" :disabled="busy" @click="shareQuote">Share quote on WhatsApp</ion-button>
+        <ion-button expand="block" fill="outline" @click="printDoc('EV Job Estimate')">Print estimate</ion-button>
+        <ion-button expand="block" fill="outline" @click="printInvoice">Print invoice</ion-button>
       </div>
     </ion-content>
   </ion-page>
@@ -49,6 +61,7 @@ const props = defineProps({ name: String })
 const job = ref(null)
 const ownership = ref({})
 const allowed = ref([])
+const invoices = ref([])
 const error = ref("")
 const busy = ref(false)
 
@@ -59,6 +72,7 @@ async function load() {
     job.value = r.job
     ownership.value = r.ownership || {}
     allowed.value = r.allowed_next || []
+    invoices.value = r.invoices || []
   } catch (e) { error.value = e.message }
 }
 
@@ -81,6 +95,20 @@ async function shareQuote() {
     window.open(r.url, "_blank")
   } catch (e) { error.value = e.message }
   busy.value = false
+}
+
+function printDoc(format) {
+  window.open(`/printview?doctype=Job%20Master&name=${props.name}&format=${encodeURIComponent(format)}`, "_blank")
+}
+
+async function printInvoice() {
+  // Prefer the posted Sales Invoice; fall back to the job estimate
+  if (invoices.value.length) {
+    const si = invoices.value[0].name
+    window.open(`/printview?doctype=Sales%20Invoice&name=${si}&format=EV%20Job%20Invoice`, "_blank")
+  } else {
+    printDoc("EV Job Estimate")
+  }
 }
 
 onMounted(load)

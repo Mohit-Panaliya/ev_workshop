@@ -107,6 +107,12 @@ def get_job_detail(name):
 	"""Full job document (with items) + linked ownership snapshot."""
 	_require_read(name)
 	doc = frappe.get_doc("Job Master", name).as_dict()
+	linked_invoices = frappe.get_list(
+		"Sales Invoice",
+		fields=["name", "grand_total", "outstanding_amount", "status"],
+		filters={"job_reference": name, "docstatus": 1},
+		order_by="posting_date desc",
+	)
 	ownership = {}
 	if doc.get("vehicle_ownership") and frappe.db.exists("Vehicle Ownership", doc.vehicle_ownership):
 		own = frappe.get_doc("Vehicle Ownership", doc.vehicle_ownership)
@@ -120,7 +126,7 @@ def get_job_detail(name):
 			"policy_no": getattr(own, "policy_no", None) or getattr(own, "insurance_policy_no", None),
 			"policy_expiry": getattr(own, "policy_expiry", None),
 		}
-	return {"job": doc, "ownership": ownership, "allowed_next": list(TRANSITIONS.get(doc.status, ()))}
+	return {"job": doc, "ownership": ownership, "allowed_next": list(TRANSITIONS.get(doc.status, ())), "invoices": linked_invoices}
 
 
 @frappe.whitelist()
@@ -435,3 +441,15 @@ def get_payments(limit=20, offset=0):
 		limit_start=offset,
 	)
 	return {"payments": rows, "has_more": len(rows) == limit}
+
+
+@frappe.whitelist()
+def get_counter_invoice(name):
+	"""Counter invoice with items + linked Sales Invoice outstanding."""
+	if not frappe.has_permission("Counter Invoice", "read", name):
+		frappe.throw("Not permitted to view Counter Invoice.", frappe.PermissionError)
+	doc = frappe.get_doc("Counter Invoice", name).as_dict()
+	outstanding = None
+	if doc.get("sales_invoice"):
+		outstanding = flt(frappe.db.get_value("Sales Invoice", doc.sales_invoice, "outstanding_amount"))
+	return {"invoice": doc, "outstanding": outstanding}

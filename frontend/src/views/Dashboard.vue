@@ -22,6 +22,14 @@
         </ion-item>
       </ion-list>
       <ion-button expand="block" :router-link="`${BASE}/jobs`">All jobs</ion-button>
+      <ion-list>
+        <ion-item :router-link="`${BASE}/counters`"><ion-label>Counter sales</ion-label></ion-item>
+        <ion-item :router-link="`${BASE}/customers`"><ion-label>Customers</ion-label></ion-item>
+        <ion-item :router-link="`${BASE}/payments`"><ion-label>Payments</ion-label></ion-item>
+        <ion-item :router-link="`${BASE}/labour`"><ion-label>Labour rates</ion-label></ion-item>
+        <ion-item :router-link="`${BASE}/catalog`"><ion-label>Vehicle catalog</ion-label></ion-item>
+        <ion-item :router-link="`${BASE}/analytics`"><ion-label>Analytics</ion-label></ion-item>
+      </ion-list>
     </ion-content>
   </ion-page>
 </template>
