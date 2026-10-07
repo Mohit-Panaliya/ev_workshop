@@ -637,7 +637,9 @@ def create_customer(data):
 						"doctype": "EV Vehicle",
 						"registration_no": data["registration_no"],
 						"model": data.get("model"),
-						"chassis_no": data.get("chassis_no"),
+						"chassis_no": data.get("chassis_no") or data["registration_no"],
+						"motor_no": data.get("motor_no") or data["registration_no"],
+						"battery_no": data.get("battery_no"),
 					}
 				)
 				.insert()
