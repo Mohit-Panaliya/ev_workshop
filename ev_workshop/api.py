@@ -30,7 +30,10 @@ from ev_workshop.utils import (
 	build_quote_message,
 	build_ready_message,
 	ensure_erpnext_item,
+	get_company,
+	get_or_create_customer,
 	normalize_mobile,
+	resolve_job_customer,
 	whatsapp_share_url,
 )
 
@@ -277,13 +280,12 @@ def make_invoice(source_name, target_doc=None):
 
 	def set_missing_values(source, target):
 		"""Populate customer, company, and items on the target invoice."""
-		ownership = frappe.get_doc("Vehicle Ownership", source.vehicle_ownership)
-		target.customer = ownership.owner_name
+		target.customer = get_or_create_customer(resolve_job_customer(source))
 		target.company = (
-			frappe.defaults.get_user_default("company")
+			source.get("company")
+			or frappe.defaults.get_user_default("company")
 			or frappe.db.get_default("company")
 		)
-		target.total = source.grand_total
 
 		# Add invoice items (part + labor rows based on customer_type)
 		for inv_item in _build_invoice_items(source):
@@ -336,11 +338,11 @@ def create_job_invoice(docname):
 		frappe.throw("Not permitted to create a Sales Invoice.", frappe.PermissionError)
 
 	try:
-		# Resolve customer from Vehicle Ownership
-		ownership = frappe.get_doc("Vehicle Ownership", doc.vehicle_ownership)
-		customer = ownership.owner_name
+		# Resolve customer (ownership first, legacy fallbacks after)
+		customer = get_or_create_customer(resolve_job_customer(doc))
 		company = (
-			frappe.defaults.get_user_default("company")
+			doc.get("company")
+			or frappe.defaults.get_user_default("company")
 			or frappe.db.get_default("company")
 		)
 

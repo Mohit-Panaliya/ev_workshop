@@ -128,6 +128,28 @@ def get_company_abbr(company=None):
 	return frappe.db.get_value("Company", company, "abbr") or None
 
 
+def resolve_job_customer(doc):
+	"""ERPNext Customer for a Job Master, across old and new data.
+
+	Prefers Vehicle Ownership (current model), falls back to the legacy
+	Customer History link, then to the denormalized customer_name
+	(pre-ownership records like JOB-2026-0001).
+	"""
+	if getattr(doc, "vehicle_ownership", None) and frappe.db.exists(
+		"Vehicle Ownership", doc.vehicle_ownership
+	):
+		owner = frappe.db.get_value("Vehicle Ownership", doc.vehicle_ownership, "owner_name")
+		if owner:
+			return owner
+	if getattr(doc, "history_no", None):
+		legacy = frappe.db.get_value("Customer History Master", doc.history_no, "customer_name")
+		if legacy:
+			return legacy
+	if getattr(doc, "customer_name", None):
+		return doc.customer_name
+	frappe.throw("Cannot resolve a customer for this job. Please link Vehicle Ownership.")
+
+
 def get_or_create_customer(customer_name):
 	"""Return ERPNext ``Customer`` name for ``customer_name``, creating it."""
 	if not customer_name:
