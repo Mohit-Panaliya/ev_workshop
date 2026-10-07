@@ -16,12 +16,12 @@
         </ion-row>
       </ion-grid>
       <ion-list v-if="dash">
-        <ion-item v-for="(count, status) in dash.by_status" :key="status" :router-link="`/workshop/jobs?status=${status}`">
+        <ion-item v-for="(count, status) in dash.by_status" :key="status" :router-link="`${BASE}/jobs?status=${status}`">
           <ion-label>{{ status }}</ion-label>
           <ion-badge slot="end">{{ count }}</ion-badge>
         </ion-item>
       </ion-list>
-      <ion-button expand="block" router-link="/workshop/jobs">All jobs</ion-button>
+      <ion-button expand="block" :router-link="`${BASE}/jobs`">All jobs</ion-button>
     </ion-content>
   </ion-page>
 </template>
@@ -29,7 +29,7 @@
 <script setup>
 import { ref, onMounted } from "vue"
 import { IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonContent, IonGrid, IonRow, IonCol, IonList, IonItem, IonLabel, IonBadge } from "@ionic/vue"
-import { workshop, logout } from "../api.js"
+import { workshop, logout, BASE } from "../api.js"
 
 const dash = ref(null)
 const error = ref("")

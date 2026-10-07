@@ -61,6 +61,7 @@ fixtures = [
 # the view client-side.
 website_route_rules = [
 	{"from_route": "/workshop/<path:app_path>", "to_route": "workshop"},
+	{"from_route": "/evhub/<path:app_path>", "to_route": "workshop"},
 ]
 
 # ============================================================================

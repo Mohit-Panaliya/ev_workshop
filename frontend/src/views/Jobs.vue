@@ -2,7 +2,7 @@
   <ion-page>
     <ion-header>
       <ion-toolbar>
-        <ion-buttons slot="start"><ion-back-button default-href="/workshop" /></ion-buttons>
+        <ion-buttons slot="start"><ion-back-button :default-href="BASE" /></ion-buttons>
         <ion-title>Jobs</ion-title>
       </ion-toolbar>
       <ion-toolbar>
@@ -18,7 +18,7 @@
     <ion-content>
       <p v-if="error" class="error">{{ error }}</p>
       <ion-list>
-        <ion-item v-for="j in jobs" :key="j.name" :router-link="`/workshop/jobs/${j.name}`">
+        <ion-item v-for="j in jobs" :key="j.name" :router-link="`${BASE}/jobs/${j.name}`">
           <ion-label>
             <h2>{{ j.name }} — {{ j.customer_name }}</h2>
             <p>{{ j.vehicle }} · {{ j.service_type }} · {{ j.date }}</p>
@@ -35,7 +35,7 @@
 import { ref, onMounted } from "vue"
 import { useRoute } from "vue-router"
 import { IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton, IonSearchbar, IonSelect, IonSelectOption, IonContent, IonList, IonItem, IonLabel, IonButton } from "@ionic/vue"
-import { workshop } from "../api.js"
+import { workshop, BASE } from "../api.js"
 
 const statuses = ["Admitted", "Inspection", "Quoted", "Approved", "Repairing", "Ready", "Completed", "Cancelled"]
 const route = useRoute()

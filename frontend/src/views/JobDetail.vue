@@ -2,7 +2,7 @@
   <ion-page>
     <ion-header>
       <ion-toolbar>
-        <ion-buttons slot="start"><ion-back-button default-href="/workshop/jobs" /></ion-buttons>
+        <ion-buttons slot="start"><ion-back-button :default-href="`${BASE}/jobs`" /></ion-buttons>
         <ion-title>{{ name }}</ion-title>
       </ion-toolbar>
     </ion-header>
@@ -43,7 +43,7 @@
 <script setup>
 import { ref, onMounted } from "vue"
 import { IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton, IonContent, IonList, IonItem, IonLabel, IonButton } from "@ionic/vue"
-import { workshop } from "../api.js"
+import { workshop, BASE } from "../api.js"
 
 const props = defineProps({ name: String })
 const job = ref(null)

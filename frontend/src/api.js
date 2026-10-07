@@ -1,5 +1,6 @@
 /** Minimal Frappe API client for the workshop PWA. */
 const CSRF = () => window.csrf_token || "";
+export const BASE = window.location.pathname.startsWith("/evhub") ? "/evhub" : "/workshop";
 
 async function call(method, params = {}, opts = {}) {
   const url = new URL(`/api/method/${method}`, window.location.origin);
@@ -54,7 +55,7 @@ export async function login(usr, pwd) {
   const data = await res.json().catch(() => ({}));
   if (!res.ok || data.exc) throw new Error("Invalid username or password.");
   // Reload so the www shell re-renders with a fresh CSRF token.
-  window.location.href = "/workshop";
+  window.location.href = BASE;
   return data;
 }
 
@@ -70,5 +71,5 @@ export async function loggedUser() {
 
 export async function logout() {
   await fetch("/api/method/logout", { credentials: "same-origin" });
-  window.location.href = "/workshop/login";
+  window.location.href = `${BASE}/login`;
 }
