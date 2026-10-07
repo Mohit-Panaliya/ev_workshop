@@ -1,8 +1,15 @@
-// Copyright (c) 2026, Mohit and contributors
-// For license information, please see license.txt
+/**
+ * EV Vehicle - Client-side form controller.
+ *
+ * Currently empty — all logic is handled by Frappe's built-in form
+ * handling and the server-side Python controller.
+ *
+ * Extension point: Add custom buttons, link shortcuts, or dashboard
+ * widgets here if needed in the future.
+ */
 
-// frappe.ui.form.on("EV Vehicle", {
-// 	refresh(frm) {
-
-// 	},
-// });
+frappe.ui.form.on("EV Vehicle", {
+	refresh(frm) {
+		// Future: Add custom buttons or dashboard widgets here
+	}
+});

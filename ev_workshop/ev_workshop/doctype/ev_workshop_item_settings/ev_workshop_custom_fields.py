@@ -1,5 +1,23 @@
-# Custom Fields for Item DocType - EV Workshop
-# This fixture adds EV Workshop-specific fields to the ERPNext Item doctype
+"""Custom Fields for ERPNext DocTypes — EV Workshop.
+
+This fixture defines custom fields added to standard ERPNext doctypes.
+These fields are created when the app is installed via `bench migrate`.
+
+Fields added:
+    On Item doctype:
+        - ev_workshop_section: Section Break (collapsible)
+        - ev_item_class: Select (Spare Part / Service / Consumable)
+        - ev_hsn_code: Data (HSN code for GST)
+        - ev_sgst_percent: Percent
+        - ev_cgst_percent: Percent
+        - ev_igst_percent: Percent
+
+    On Sales Invoice doctype:
+        - job_reference: Link to Job Master
+
+These fields allow ERPNext's standard Item and Sales Invoice doctypes
+to carry EV Workshop-specific data without overriding the doctypes.
+"""
 
 def get_custom_fields():
     return [
@@ -365,6 +383,58 @@ def get_custom_fields():
             "no_copy": 0,
             "non_negative": 0,
             "options": None,
+            "owner": "Administrator",
+            "permlevel": 0,
+            "precision": "",
+            "print_hide": 0,
+            "print_hide_if_no_value": 0,
+            "read_only": 0,
+            "read_only_depends_on": None,
+            "report_hide": 0,
+            "reqd": 0,
+            "search_index": 0,
+            "show_dashboard": 0,
+            "sort_options": 0,
+            "translatable": 0,
+            "unique": 0,
+            "width": None
+        },
+        {
+            "allow_on_submit": 0,
+            "bold": 0,
+            "collapsible": 0,
+            "creation": "2026-07-24 08:00:00.000000",
+            "default": None,
+            "depends_on": None,
+            "description": "Link to EV Workshop Job Master",
+            "docstatus": 0,
+            "dt": "Sales Invoice",
+            "fetch_from": None,
+            "fetch_if_empty": 0,
+            "fieldname": "job_reference",
+            "fieldtype": "Link",
+            "hidden": 0,
+            "hide_border": 0,
+            "hide_days": 0,
+            "hide_seconds": 0,
+            "idx": 1,
+            "in_global_search": 0,
+            "in_list_view": 0,
+            "in_preview": 0,
+            "in_standard_filter": 0,
+            "insert_after": "naming_series",
+            "is_system_generated": 0,
+            "is_virtual": 0,
+            "label": "Job Reference",
+            "length": 0,
+            "mandatory_depends_on": None,
+            "modified": "2026-07-24 08:00:00.000000",
+            "modified_by": "Administrator",
+            "module": "EV Workshop",
+            "name": "Sales Invoice-job_reference",
+            "no_copy": 0,
+            "non_negative": 0,
+            "options": "Job Master",
             "owner": "Administrator",
             "permlevel": 0,
             "precision": "",

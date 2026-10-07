@@ -11,6 +11,9 @@ import urllib.parse
 import frappe
 from frappe.utils import flt
 
+#: Hard cap for item lookups so a crafted `limit` cannot dump the table.
+MAX_ITEM_LOOKUP_LIMIT = 100
+
 #: Country code prefixed when a 10-digit Indian mobile is given.
 DEFAULT_COUNTRY_CODE = "91"
 
@@ -39,8 +42,20 @@ def whatsapp_share_url(mobile, message):
 	return f"{WHATSAPP_SHARE_BASE}/{normalize_mobile(mobile)}?text={urllib.parse.quote(message)}"
 
 
+def _is_retailer(doc):
+	return (getattr(doc, "customer_type", None) or "Customer") == "Retailer"
+
+
+def _labor_amount(item):
+	return flt(getattr(item, "labor_amount", 0))
+
+
 def build_quote_message(doc):
-	"""Markdown quote text for a Job Master doc."""
+	"""Markdown quote text for a Job Master doc.
+
+	Retailers see part-only lines; regular customers see part + labor.
+	"""
+	retailer = _is_retailer(doc)
 	lines = [
 		f"*QUOTE - {doc.name}*",
 		"",
@@ -52,8 +67,15 @@ def build_quote_message(doc):
 	]
 	for item in doc.items or []:
 		item_name = item.item_name or item.item_no
+		labor = _labor_amount(item)
 		lines.append(f"{item_name}")
-		lines.append(f"   Qty: {flt(item.qty)} x Rs. {flt(item.rate)}")
+		if not retailer and labor > 0:
+			lines.append(f"   Part: {flt(item.qty)} x Rs. {flt(item.rate)} = Rs. {flt(item.amount)}")
+			lines.append(
+				f"   Labor: {flt(item.qty)} x Rs. {flt(getattr(item, 'labor_cost', 0))} = Rs. {labor}"
+			)
+		else:
+			lines.append(f"   Qty: {flt(item.qty)} x Rs. {flt(item.rate)}")
 		lines.append(f"   Total: Rs. {flt(item.total_amount)}")
 		lines.append("")
 	lines += [
@@ -67,6 +89,7 @@ def build_quote_message(doc):
 
 def build_ready_message(doc):
 	"""Markdown vehicle-ready text for a Job Master doc."""
+	retailer = _is_retailer(doc)
 	lines = [
 		f"*Vehicle Ready - {doc.name}*",
 		"",
@@ -78,7 +101,11 @@ def build_ready_message(doc):
 	]
 	for item in doc.items or []:
 		item_name = item.item_name or item.item_no
-		lines.append(f"{item_name} - Rs. {flt(item.total_amount)}")
+		labor = _labor_amount(item)
+		if not retailer and labor > 0:
+			lines.append(f"{item_name}: Rs. {flt(item.total_amount)} (Part: {flt(item.amount)} + Labor: {labor})")
+		else:
+			lines.append(f"{item_name}: Rs. {flt(item.total_amount)}")
 	lines += [
 		"```",
 		f"*Total Amount: Rs. {flt(doc.grand_total)}*",

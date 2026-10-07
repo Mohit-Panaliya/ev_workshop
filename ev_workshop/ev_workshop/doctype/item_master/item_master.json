@@ -11,6 +11,7 @@
   "item_class",
   "uom",
   "standard_rate",
+  "labor_cost",
   "min_qty",
   "hsn_code",
   "taxes_section",
@@ -54,8 +55,15 @@
    "fieldname": "standard_rate",
    "fieldtype": "Currency",
    "in_list_view": 1,
-   "label": "Standard Rate",
+   "label": "MRP (Part Rate)",
    "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "labor_cost",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Labor / Fitting Charge"
   },
   {
    "fieldname": "min_qty",
@@ -112,35 +120,35 @@
    "print": 1,
    "read": 1,
    "report": 1,
-    "role": "System Manager",
-    "share": 1,
-    "write": 1
-   },
-   {
-    "create": 1,
-    "delete": 0,
-    "email": 1,
-    "export": 1,
-    "print": 1,
-    "read": 1,
-    "report": 1,
-    "role": "Supervisor",
-    "share": 1,
-    "write": 1
-   },
-   {
-    "create": 0,
-    "delete": 0,
-    "email": 0,
-    "export": 0,
-    "print": 1,
-    "read": 1,
-    "report": 1,
-    "role": "Mechanic",
-    "share": 0,
-    "write": 0
-   }
-  ],
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 0,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Supervisor",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 0,
+   "delete": 0,
+   "email": 0,
+   "export": 0,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Mechanic",
+   "share": 0,
+   "write": 0
+  }
+ ],
  "row_format": "Dynamic",
  "rows_threshold_for_grid_search": 20,
  "search_fields": "item_name",

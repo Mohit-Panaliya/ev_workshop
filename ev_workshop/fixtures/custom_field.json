@@ -97,11 +97,12 @@
   "doctype": "Custom Field",
   "dt": "Sales Invoice",
   "fieldname": "job_reference",
-  "fieldtype": "Data",
+  "fieldtype": "Link",
   "label": "Job Reference",
   "module": "EV Workshop",
   "name": "Sales Invoice-job_reference",
   "insert_after": "customer",
+  "options": "Job Master",
   "read_only": 1,
   "description": "Source Job Master for workshop invoices"
  }
