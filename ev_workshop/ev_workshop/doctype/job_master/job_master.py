@@ -26,14 +26,21 @@ class JobMaster(Document):
 	def validate(self):
 		"""Validate document before saving.
 
-		Order matters: we recompute child amounts first (in case customer_type
-		changed), then validate workflow rules, then sum the grand total.
+		Order matters: company default first (invoice/stock need it), then
+		child amounts (in case customer_type changed), workflow rules,
+		approval stamp, grand total.
 		"""
+		self.set_company_default()
 		self.recompute_child_amounts()
 		self.validate_vehicle_ownership()
 		self.validate_workflow_status()
 		self.set_approval_date()
 		self.calculate_grand_total()
+
+	def set_company_default(self):
+		"""Default company from user/global defaults (ERPNext linkage)."""
+		if not self.company:
+			self.company = frappe.defaults.get_user_default("company") or frappe.db.get_default("company")
 
 	def recompute_child_amounts(self):
 		"""Recompute amount, labor_amount, tax_amount, total_amount on each child row.

@@ -120,6 +120,14 @@ def get_company():
 	return frappe.defaults.get_user_default("company") or frappe.db.get_default("company")
 
 
+def get_company_abbr(company=None):
+	"""Company abbreviation for account/warehouse names. Never hardcoded."""
+	company = company or get_company()
+	if not company:
+		return None
+	return frappe.db.get_value("Company", company, "abbr") or None
+
+
 def get_or_create_customer(customer_name):
 	"""Return ERPNext ``Customer`` name for ``customer_name``, creating it."""
 	if not customer_name:
@@ -138,3 +146,46 @@ def get_or_create_customer(customer_name):
 	)
 	new_customer.insert(ignore_permissions=False)
 	return new_customer.name
+
+
+def ensure_erpnext_item(item_master_no):
+	"""Return ERPNext ``Item`` code for an Item Master row, creating it.
+
+	Workshop job lines point at Item Master, but Sales Invoices and Stock
+	Entries need real ERPNext Items. Missing Items are created on the fly
+	(stock item for Spare Parts, non-stock otherwise) carrying over rate,
+	HSN and GST from the master.
+	"""
+	if frappe.db.exists("Item", item_master_no):
+		return item_master_no
+
+	master = frappe.db.get_value(
+		"Item Master",
+		item_master_no,
+		["item_name", "item_class", "uom", "standard_rate", "hsn_code", "sgst_percent", "cgst_percent", "igst_percent"],
+		as_dict=True,
+	)
+	if not master:
+		frappe.throw(f"Item Master {item_master_no} not found.")
+
+	uom = master.uom or "Nos"
+	item = frappe.get_doc(
+		{
+			"doctype": "Item",
+			"item_code": item_master_no,
+			"item_name": master.item_name or item_master_no,
+			"item_group": frappe.db.get_single_value("Stock Settings", "item_group")
+			or "All Item Groups",
+			"stock_uom": uom,
+			"is_stock_item": 1 if (master.item_class == "Spare Part") else 0,
+			"standard_rate": flt(master.standard_rate),
+			"gst_hsn_code": master.hsn_code,
+			"ev_item_class": master.item_class,
+			"ev_hsn_code": master.hsn_code,
+			"ev_sgst_percent": flt(master.sgst_percent),
+			"ev_cgst_percent": flt(master.cgst_percent),
+			"ev_igst_percent": flt(master.igst_percent),
+		}
+	)
+	item.insert(ignore_permissions=False)
+	return item.name

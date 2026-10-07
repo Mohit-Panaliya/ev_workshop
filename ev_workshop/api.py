@@ -29,6 +29,7 @@ from ev_workshop.utils import (
 	MAX_ITEM_LOOKUP_LIMIT,
 	build_quote_message,
 	build_ready_message,
+	ensure_erpnext_item,
 	normalize_mobile,
 	whatsapp_share_url,
 )
@@ -113,18 +114,23 @@ def _build_invoice_items(doc):
 	invoice_items = []
 	customer_type = doc.customer_type or "Customer"
 
-	# Resolve company abbreviation for account names
-	company = doc.company or frappe.defaults.get_user_default("company") or frappe.db.get_default("company")
-	company_abbr = frappe.db.get_value("Company", company, "abbr") or "EI"
+	# Resolve company abbreviation for account names (never hardcoded)
+	company = doc.get("company") or frappe.defaults.get_user_default("company") or frappe.db.get_default("company")
+	if not company:
+		frappe.throw("Please set a default Company before creating invoices.")
+	company_abbr = frappe.db.get_value("Company", company, "abbr")
+	if not company_abbr:
+		frappe.throw(f"Company {company} has no abbreviation.")
 	income_account = f"Sales - {company_abbr}"
 	cost_center = f"Main - {company_abbr}"
 
 	for item in doc.items:
 		item_name = item.item_name or item.item_no
+		item_code = ensure_erpnext_item(item.item_no)
 
 		# Part line item (always included for both Customer and Retailer)
 		invoice_items.append({
-			"item_code": item.item_no,
+			"item_code": item_code,
 			"item_name": item_name,
 			"qty": item.qty,
 			"rate": item.rate,
@@ -136,7 +142,7 @@ def _build_invoice_items(doc):
 		# Labor line item (Customer only — Retailers don't pay fitting charges)
 		if customer_type != "Retailer" and item.labor_amount and item.labor_amount > 0:
 			invoice_items.append({
-				"item_code": item.item_no,
+				"item_code": item_code,
 				"item_name": f"{item_name} - Fitting/Labor",
 				"qty": item.qty,
 				"rate": item.labor_cost,
@@ -393,7 +399,11 @@ def create_stock_entry_for_job(docname):
 		frappe.defaults.get_user_default("company")
 		or frappe.db.get_default("company")
 	)
-	company_abbr = frappe.db.get_value("Company", company, "abbr") or "EI"
+	if not company:
+		frappe.throw("Please set a default Company before issuing stock.")
+	company_abbr = frappe.db.get_value("Company", company, "abbr")
+	if not company_abbr:
+		frappe.throw(f"Company {company} has no abbreviation.")
 
 	# Filter to spare parts only (exclude Service and Consumable items)
 	stock_items = []
@@ -401,7 +411,7 @@ def create_stock_entry_for_job(docname):
 		item_class = frappe.db.get_value("Item Master", item.item_no, "item_class")
 		if item_class == "Spare Part":
 			stock_items.append({
-				"item_code": item.item_no,
+				"item_code": ensure_erpnext_item(item.item_no),
 				"qty": item.qty,
 				"s_warehouse": f"Stores - {company_abbr}",
 				"t_warehouse": None,  # Material Issue — no target warehouse

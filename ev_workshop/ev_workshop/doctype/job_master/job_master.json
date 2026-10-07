@@ -5,8 +5,9 @@
  "creation": "2026-03-04 11:00:00",
  "doctype": "DocType",
  "engine": "InnoDB",
-  "field_order": [
+ "field_order": [
   "date",
+  "company",
   "vehicle_ownership",
   "customer_name",
   "mobile_no",
@@ -21,8 +22,8 @@
   "complaints",
   "allocation_tab",
   "supervisor",
-   "mechanic",
-   "inspection_tab",
+  "mechanic",
+  "inspection_tab",
   "mirror_rh",
   "mirror_lh",
   "charger",
@@ -42,9 +43,9 @@
   "items",
   "grand_total",
   "approval_tab",
-   "customer_approval",
-   "approval_date",
-   "payments_tab",
+  "customer_approval",
+  "approval_date",
+  "payments_tab",
   "payment_mode",
   "payment_rcd"
  ],
@@ -57,43 +58,51 @@
    "label": "Date",
    "reqd": 1
   },
-   {
-    "fieldname": "vehicle_ownership",
-    "fieldtype": "Link",
-    "in_list_view": 1,
-    "label": "Vehicle Ownership",
-    "options": "Vehicle Ownership",
-    "reqd": 1
-   },
-   {
-    "fieldname": "customer_name",
-    "fieldtype": "Link",
-    "label": "Customer",
-    "options": "Customer",
-    "read_only": 1
-   },
-   {
-    "fieldname": "mobile_no",
-    "fieldtype": "Data",
-    "label": "Mobile No.",
-    "read_only": 1
-   },
-   {
-    "fieldname": "vehicle",
-    "fieldtype": "Link",
-    "label": "Vehicle",
-    "options": "EV Vehicle",
-    "read_only": 1
-   },
-   {
-    "default": "Customer",
-    "fieldname": "customer_type",
-    "fieldtype": "Select",
-    "in_list_view": 1,
-    "label": "Customer Type",
-    "options": "Customer\nRetailer",
-    "reqd": 1
-   },
+  {
+   "fieldname": "vehicle_ownership",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Vehicle Ownership",
+   "options": "Vehicle Ownership",
+   "reqd": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 0,
+   "in_list_view": 0
+  },
+  {
+   "fieldname": "customer_name",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "read_only": 1
+  },
+  {
+   "fieldname": "mobile_no",
+   "fieldtype": "Data",
+   "label": "Mobile No.",
+   "read_only": 1
+  },
+  {
+   "fieldname": "vehicle",
+   "fieldtype": "Link",
+   "label": "Vehicle",
+   "options": "EV Vehicle",
+   "read_only": 1
+  },
+  {
+   "default": "Customer",
+   "fieldname": "customer_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Customer Type",
+   "options": "Customer\nRetailer",
+   "reqd": 1
+  },
   {
    "fieldname": "service_type",
    "fieldtype": "Select",
@@ -107,15 +116,15 @@
    "label": "KM Reading",
    "reqd": 1
   },
-   {
-    "default": "Admitted",
-    "fieldname": "status",
-    "fieldtype": "Select",
-    "in_list_view": 1,
-    "label": "Status",
-    "options": "Admitted\nInspection\nQuoted\nApproved\nRepairing\nReady\nCompleted\nCancelled",
-    "reqd": 1
-   },
+  {
+   "default": "Admitted",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Admitted\nInspection\nQuoted\nApproved\nRepairing\nReady\nCompleted\nCancelled",
+   "reqd": 1
+  },
   {
    "fieldname": "urgent",
    "fieldtype": "Select",
@@ -145,11 +154,11 @@
    "label": "Mechanic",
    "options": "Employee"
   },
-   {
-    "fieldname": "inspection_tab",
-    "fieldtype": "Tab Break",
-    "label": "Inspection"
-   },
+  {
+   "fieldname": "inspection_tab",
+   "fieldtype": "Tab Break",
+   "label": "Inspection"
+  },
   {
    "default": "0",
    "fieldname": "mirror_rh",
@@ -250,18 +259,18 @@
    "fieldtype": "Tab Break",
    "label": "Approval"
   },
-   {
-    "default": "0",
-    "fieldname": "customer_approval",
-    "fieldtype": "Check",
-    "label": "Customer Approval"
-   },
-   {
-    "fieldname": "approval_date",
-    "fieldtype": "Datetime",
-    "label": "Approval Date",
-    "read_only": 1
-   },
+  {
+   "default": "0",
+   "fieldname": "customer_approval",
+   "fieldtype": "Check",
+   "label": "Customer Approval"
+  },
+  {
+   "fieldname": "approval_date",
+   "fieldtype": "Datetime",
+   "label": "Approval Date",
+   "read_only": 1
+  },
   {
    "fieldname": "payments_tab",
    "fieldtype": "Tab Break",
@@ -295,7 +304,7 @@
    "default": "0",
    "fieldname": "spare_vehicle",
    "fieldtype": "Check",
-    "label": "We Provided Spare Vehicle"
+   "label": "We Provided Spare Vehicle"
   }
  ],
  "grid_page_length": 50,
