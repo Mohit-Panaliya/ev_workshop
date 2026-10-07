@@ -46,7 +46,7 @@ def _require_write(name=None):
 def get_dashboard():
 	"""Counts by status + today's admissions + month completed revenue."""
 	_require_read()
-	statuses = [s for s, in frappe.db.get_values("Job Master", {}, "distinct status")]
+	statuses = {r.status for r in frappe.get_all("Job Master", fields=["status"], limit=10000)}
 	by_status = {}
 	for st in statuses:
 		by_status[st] = frappe.db.count("Job Master", {"status": st})
