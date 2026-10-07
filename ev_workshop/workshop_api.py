@@ -8,6 +8,8 @@ so Mechanics see only what their role allows. Used by ``frontend/`` and the
 import frappe
 from frappe.utils import flt, get_first_day, getdate, today
 
+from ev_workshop.utils import resolve_item_master
+
 #: Allowed status transitions for the PWA "advance" action.
 TRANSITIONS = {
 	"Admitted": ("Inspection", "Cancelled"),
@@ -587,7 +589,7 @@ def create_job(data):
 			"company": data.get("company"),
 			"items": [
 				{
-					"item_no": r.get("item_no"),
+					"item_no": resolve_item_master(r.get("item_no")),
 					"qty": r.get("qty") or 1,
 					"rate": r.get("rate") or 0,
 				}
@@ -679,7 +681,7 @@ def create_counter(data):
 			"discount_percent": data.get("discount_percent") or 0,
 			"items": [
 				{
-					"item_master": r.get("item_master"),
+					"item_master": resolve_item_master(r.get("item_master")),
 					"qty": r.get("qty") or 1,
 					"mrp": r.get("mrp") or 0,
 					"discount_percent": r.get("discount_percent") or 0,
@@ -816,7 +818,7 @@ def update_job(name, data):
 			doc.set(f, data[f])
 	for r in (data.get("items") or []):
 		if r.get("item_no"):
-			doc.append("items", {"item_no": r["item_no"], "qty": r.get("qty") or 1, "rate": r.get("rate") or 0})
+			doc.append("items", {"item_no": resolve_item_master(r["item_no"]), "qty": r.get("qty") or 1, "rate": r.get("rate") or 0})
 	for r in (data.get("labours") or []):
 		if r.get("labour_master"):
 			doc.append(

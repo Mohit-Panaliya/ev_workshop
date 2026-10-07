@@ -227,6 +227,16 @@ def get_or_create_customer(customer_name):
 	return new_customer.name
 
 
+def resolve_item_master(code):
+	"""Item Master name for an item_no business key (legacy docs have hash names)."""
+	name = frappe.db.get_value("Item Master", {"item_no": code}, "name")
+	if name:
+		return name
+	if frappe.db.exists("Item Master", code):
+		return code
+	frappe.throw(f"Item Master {code} not found.")
+
+
 def ensure_erpnext_item(item_master_no):
 	"""Return ERPNext ``Item`` code for an Item Master row, creating it.
 
