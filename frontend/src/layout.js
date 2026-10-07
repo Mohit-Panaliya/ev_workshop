@@ -11,6 +11,7 @@ const NAV = [
   { hash: "#/payments", pattern: /^#\/payments/, icon: "banknotes", label: "Payments" },
   { hash: "#/inventory", pattern: /^#\/(inventory|labour)/, icon: "cube", label: "Inventory" },
   { hash: "#/employees", pattern: /^#\/employees/, icon: "user-group", label: "Employees" },
+  { hash: "#/company", pattern: /^#\/company/, icon: "building-office-2", label: "Company Profile" },
 ]
 
 function navLink(item, active, collapsed) {

@@ -852,7 +852,7 @@ def update_job(name, data):
 # Bulk delete (Laravel bulk-delete parity)
 # ============================================================================
 
-BULK_DELETABLE = {"Job Master", "Counter Invoice", "Item Master", "Labour Master", "Vehicle Brand", "Vehicle Model", "EV Vehicle"}
+BULK_DELETABLE = {"Job Master", "Counter Invoice", "Customer", "Item Master", "Labour Master", "Vehicle Brand", "Vehicle Model", "EV Vehicle"}
 
 
 @frappe.whitelist()

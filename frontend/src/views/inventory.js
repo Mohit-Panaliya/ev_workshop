@@ -2,6 +2,7 @@
 import { api } from "../api.js";
 import { icon } from "../icons.js";
 import { badge, button, card, dataTable, th, td, fieldLabel, money, escapeHtml } from "../ui.js";
+import { importButton, bindImport } from "../list.js";
 
 export async function InventoryView() {
   const header = `<h2 class="flex items-center gap-2 font-semibold text-xl text-gray-800 leading-tight">${icon("cube", "w-6 h-6 text-primary")}Inventory</h2>`;
@@ -14,7 +15,8 @@ export async function InventoryView() {
       <div class="relative"><input type="text" name="search" placeholder="Search parts..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg">
       <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">${icon("magnifying-glass", "h-5 w-5 text-gray-400")}</div></div>
     </div>${button(`${icon("magnifying-glass", "w-4 h-4")}Search`, { type: "submit" })}
-    ${button("Export", { variant: "secondary", attrs: `data-action="export"` })}</form>
+    ${button("Export", { variant: "secondary", attrs: `data-action="export"` })}
+    ${importButton("parts", "item_no,item_name,item_class,uom,standard_rate,hsn_code")}</form>
     <div id="inv-table"></div>
   </div></div>`;
   return { header, content };
@@ -51,6 +53,7 @@ InventoryView.mounted = async (view) => {
     }
   }
   form.addEventListener("submit", (e) => { e.preventDefault(); load(); });
+  bindImport(view, load);
   view.querySelectorAll("#inv-tabs button").forEach((b) => b.addEventListener("click", () => {
     tab = b.dataset.tab;
     view.querySelectorAll("#inv-tabs button").forEach((x) => {

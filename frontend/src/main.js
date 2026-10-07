@@ -17,6 +17,7 @@ import { InventoryView } from "./views/inventory.js";
 import { EmployeesView } from "./views/employees.js";
 import { CatalogView } from "./views/catalog.js";
 import { AnalyticsView } from "./views/analytics.js";
+import { CompanyView } from "./views/company.js";
 
 const routes = [
   { pattern: /^#\/login$/, render: LoginView, guest: true },
@@ -32,6 +33,7 @@ const routes = [
   { pattern: /^#\/employees$/, render: EmployeesView },
   { pattern: /^#\/catalog$/, render: CatalogView },
   { pattern: /^#\/analytics$/, render: AnalyticsView },
+  { pattern: /^#\/company$/, render: CompanyView },
 ];
 
 const state = {

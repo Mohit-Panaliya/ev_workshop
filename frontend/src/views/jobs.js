@@ -2,6 +2,7 @@
 import { api } from "../api.js";
 import { icon } from "../icons.js";
 import { badge, button, card, dataTable, th, td, searchBar, fieldLabel, textInput, money, fmtDate, escapeHtml, pageHeader, statusBadge, JOB_STATUS_BADGES, JOB_STATUS_ICONS } from "../ui.js";
+import { bindBulkDelete } from "../list.js";
 
 const PAY_BADGES = { paid: "green", partially_paid: "amber", unbilled: "gray", default: "red" };
 
@@ -30,6 +31,9 @@ export async function JobsView() {
         <div>${fieldLabel("Per page")}<select name="per_page" class="w-full border-gray-300 rounded-lg"><option>15</option><option>25</option><option>50</option><option>100</option></select></div>
       </div></div>
     </form>
+    <div class="flex justify-end gap-2">
+      ${button("Delete selected", { variant: "danger", attrs: `data-action="bulk-delete" data-doctype="Job Master"` })}
+    </div>
     <div id="jobs-table"></div>
   </div></div>`;
   return { header, content };
@@ -52,6 +56,7 @@ JobsView.mounted = async (view) => {
     const rows = jobs.map((j) => {
       const ps = payStatus(j);
       return `<tr class="group hover:bg-muted/50">
+        ${td(`<input type="checkbox" data-name="${escapeHtml(j.name)}" class="rounded border-gray-300 text-primary">`, "w-10")}
         ${td(`<a class="text-primary hover:text-primary-700" href="#/jobs/${encodeURIComponent(j.name)}">${j.name}</a>`)}
         ${td(fmtDate(j.date))}
         ${td(`<span class="max-w-[180px] truncate block">${escapeHtml(j.customer_name || "-")}</span>`)}
@@ -65,6 +70,7 @@ JobsView.mounted = async (view) => {
       `${th("")}${th("Job No.")}${th("Date")}${th("Customer")}${th("Vehicle")}${th("Status")}${th("Grand Total", "text-right")}${th("Payment")}`,
       rows, "wrench-screwdriver", "No job cards found."
     );
+    bindBulkDelete(view, table);
   }
   form.addEventListener("submit", (e) => { e.preventDefault(); load(); });
   view.querySelector('[data-action="export"]').addEventListener("click", () => {
@@ -114,6 +120,17 @@ export async function JobDetailView(name) {
 
   const content = `<div class="py-6"><div class="max-w-5xl mx-auto sm:px-6 lg:px-8 space-y-6">
     <div id="job-flash"></div>
+    ${card(`<details>
+      <summary class="cursor-pointer font-semibold text-gray-900">Add Parts / Labour</summary>
+      <form id="add-form" class="grid grid-cols-4 gap-2 mt-3 items-end">
+        <div>${fieldLabel("Item code (blank for labour)")}${textInput("item_no")}</div>
+        <div>${fieldLabel("Labour (blank for part)")}${textInput("labour_master")}</div>
+        <div>${fieldLabel("Qty")}${textInput("qty", "1", "number")}</div>
+        <div>${fieldLabel("Rate")}${textInput("rate", "0", "number")}</div>
+        <div class="col-span-4 flex justify-end">${button("Add to Job", { variant: "secondary", type: "submit" })}</div>
+      </form>
+      <p class="text-xs text-gray-500 mt-1">Use the Item Master code (e.g. 002) or Labour Master name (e.g. LAB-0001).</p>
+    </details>`)}
     ${card(`<div class="grid grid-cols-3 gap-6">
       <div><h3 class="font-semibold text-gray-900 mb-3">Job Details</h3><dl class="space-y-2 text-sm">
         <div><dt class="inline font-medium">No: </dt><dd class="inline">${escapeHtml(j.name)}</dd></div>
@@ -217,6 +234,24 @@ JobDetailView.mounted = async (view, m) => {
     } catch (e) { alert(e.message); }
   });
   const payBtn = view.querySelector("[data-pay-invoice]");
+  const addForm = view.querySelector("#add-form");
+  if (addForm) addForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const fd = new FormData(addForm);
+    const payload = { items: [], labours: [] };
+    if ((fd.get("item_no") || "").trim()) {
+      payload.items.push({ item_no: fd.get("item_no").trim(), qty: Number(fd.get("qty")) || 1, rate: Number(fd.get("rate")) || 0 });
+    } else if ((fd.get("labour_master") || "").trim()) {
+      payload.labours.push({ labour_master: fd.get("labour_master").trim(), qty: Number(fd.get("qty")) || 1, rate: Number(fd.get("rate")) || 0 });
+    } else {
+      alert("Enter an item code or a labour master.");
+      return;
+    }
+    try {
+      await api.updateJob(name, payload);
+      window.location.reload();
+    } catch (ex) { alert(ex.message); }
+  });
   if (payBtn) payBtn.addEventListener("click", async () => {
     const form = view.querySelector("#pay-form");
     const fd = new FormData(form);

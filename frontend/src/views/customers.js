@@ -2,6 +2,7 @@
 import { api } from "../api.js";
 import { icon } from "../icons.js";
 import { button, card, dataTable, th, td, searchBar, fieldLabel, textInput, money, fmtDate, escapeHtml, pageHeader, statusBadge, JOB_STATUS_BADGES, JOB_STATUS_ICONS } from "../ui.js";
+import { bindBulkDelete, importButton, bindImport } from "../list.js";
 
 export async function CustomersView() {
   const header = `<div class="flex justify-between items-center">
@@ -13,6 +14,10 @@ export async function CustomersView() {
   const content = `<div class="py-6"><div class="max-w-full sm:px-6 lg:px-8 space-y-4">
     <form id="c-filter" class="flex gap-3"><div class="flex-1">${searchBar("search", "", "Search by name or mobile...")}</div>
     ${button(`${icon("magnifying-glass", "w-4 h-4")}Search`, { type: "submit" })}</form>
+    <div class="flex justify-end gap-2 items-center">
+      ${importButton("customers", "customer_name,mobile_no,email_id,city")}
+      ${button("Delete selected", { variant: "danger", attrs: `data-action="bulk-delete" data-doctype="Customer"` })}
+    </div>
     <div id="c-table"></div>
   </div></div>`;
   return { header, content };
@@ -31,11 +36,14 @@ CustomersView.mounted = async (view) => {
       return;
     }
     const html = rows.map((c) => `<tr class="group hover:bg-muted/50">
+      ${td(`<input type="checkbox" data-name="${escapeHtml(c.name)}" class="rounded border-gray-300 text-primary">`, "w-10")}
       ${td(`<a class="text-primary hover:text-primary-700 font-medium" href="#/customers/${encodeURIComponent(c.name)}">${escapeHtml(c.customer_name)}</a>`)}
       ${td(escapeHtml(c.mobile_no || "-"))}
       ${td(escapeHtml(c.city || "-"))}
     </tr>`).join("");
-    table.innerHTML = dataTable(`${th("Display Name")}${th("Mobile")}${th("City")}`, html, "users", "No customers found.");
+    table.innerHTML = dataTable(`${th("")}${th("Display Name")}${th("Mobile")}${th("City")}`, html, "users", "No customers found.");
+    bindBulkDelete(view, table);
+    bindImport(view, () => form.dispatchEvent(new Event("submit")));
   }
   form.addEventListener("submit", (e) => { e.preventDefault(); load(); });
   view.querySelector('[data-action="export"]').addEventListener("click", () => {

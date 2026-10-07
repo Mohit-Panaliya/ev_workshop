@@ -59,6 +59,11 @@ export const api = {
   createCounter: (data) => call(`${M}.create_counter`, { data }, { httpMethod: "POST" }),
   submitCounter: (name) => call(`${M}.submit_counter`, { name }, { httpMethod: "POST" }),
   recordPayment: (data) => call(`${M}.record_payment`, { data }, { httpMethod: "POST" }),
+  company: () => call(`${M}.get_company_profile`),
+  saveCompany: (data) => call(`${M}.update_company_profile`, { data }, { httpMethod: "POST" }),
+  updateJob: (name, data) => call(`${M}.update_job`, { name, data }, { httpMethod: "POST" }),
+  bulkDelete: (doctype, names) => call(`${M}.bulk_delete`, { doctype, names }, { httpMethod: "POST" }),
+  importCsv: (entity, rows) => call(`${M}.import_csv`, { entity, rows }, { httpMethod: "POST" }),
   quoteUrl: (docname) => call("ev_workshop.api.send_quote_whatsapp", { docname }, { httpMethod: "POST" }),
   readyUrl: (docname) => call("ev_workshop.api.send_ready_notification", { docname }, { httpMethod: "POST" }),
 };
