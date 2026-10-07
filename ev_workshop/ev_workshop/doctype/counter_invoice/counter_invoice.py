@@ -81,6 +81,7 @@ class CounterInvoice(Document):
 			)
 			se.insert()
 			se.submit()
+			self.db_set("stock_entry", se.name)
 
 		# 2. Book the sale as a submitted Sales Invoice (payments/outstanding
 		# live on the invoice, like the job-card flow).
@@ -116,3 +117,14 @@ class CounterInvoice(Document):
 		si.submit()
 		self.db_set("sales_invoice", si.name)
 		frappe.msgprint(f"Sales Invoice {si.name} created.")
+
+	def on_cancel(self):
+		# Roll back what on_submit booked, in reverse order.
+		if self.sales_invoice and frappe.db.exists("Sales Invoice", self.sales_invoice):
+			si = frappe.get_doc("Sales Invoice", self.sales_invoice)
+			if si.docstatus == 1:
+				si.cancel()
+		if getattr(self, "stock_entry", None) and frappe.db.exists("Stock Entry", self.stock_entry):
+			se = frappe.get_doc("Stock Entry", self.stock_entry)
+			if se.docstatus == 1:
+				se.cancel()

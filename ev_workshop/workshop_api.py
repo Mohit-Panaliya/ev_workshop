@@ -742,3 +742,155 @@ def record_payment(data):
 	pe.insert()
 	pe.submit()
 	return {"name": pe.name}
+
+
+# ============================================================================
+# Company profile (Laravel company-profile parity)
+# ============================================================================
+
+@frappe.whitelist()
+def get_company_profile():
+	"""Current company record for the Company Profile screen."""
+	_require_read()
+	company = frappe.db.get_default("company")
+	if not company:
+		companies = frappe.get_all("Company", pluck="name", limit=1)
+		company = companies[0] if companies else None
+	if not company:
+		frappe.throw("No Company found on site.")
+	return frappe.get_doc("Company", company).as_dict()
+
+
+@frappe.whitelist()
+def update_company_profile(data):
+	"""Update allowed Company fields (name/address/tax/phone)."""
+	if not frappe.has_permission("Company", "write"):
+		frappe.throw("Not permitted to update Company.", frappe.PermissionError)
+	if isinstance(data, str):
+		data = frappe.parse_json(data)
+	company = data.get("name") or frappe.db.get_default("company")
+	doc = frappe.get_doc("Company", company)
+	for f in ("company_name", "address", "city", "state", "pincode", "phone_no", "email", "gstin", "pan"):
+		if f in data:
+			doc.set(f, data[f])
+	doc.save()
+	return {"name": doc.name}
+
+
+# ============================================================================
+# Vehicle update (Laravel vehicles update parity)
+# ============================================================================
+
+@frappe.whitelist()
+def update_vehicle(name, data):
+	"""Update EV Vehicle fields (model link, identifiers, odometer...)."""
+	if not frappe.has_permission("EV Vehicle", "write", name):
+		frappe.throw("Not permitted to update EV Vehicle.", frappe.PermissionError)
+	if isinstance(data, str):
+		data = frappe.parse_json(data)
+	doc = frappe.get_doc("EV Vehicle", name)
+	for f in ("vehicle_model", "model", "chassis_no", "motor_no", "battery_no", "controller_no", "converter_no", "date_of_sale"):
+		if f in data:
+			doc.set(f, data[f])
+	doc.save()
+	return {"name": doc.name}
+
+
+# ============================================================================
+# Job update: items/labours append + field edits (Laravel assign parity)
+# ============================================================================
+
+@frappe.whitelist()
+def update_job(name, data):
+	"""Append items/labours or edit header fields on a Job Master."""
+	_require_write(name)
+	if isinstance(data, str):
+		data = frappe.parse_json(data)
+	doc = frappe.get_doc("Job Master", name)
+	if doc.status in ("Completed", "Cancelled"):
+		frappe.throw(f"Cannot edit a {doc.status} job.")
+	for f in ("customer_type", "service_type", "km_reading", "supervisor", "mechanic", "complaints", "company"):
+		if f in data:
+			doc.set(f, data[f])
+	for r in (data.get("items") or []):
+		if r.get("item_no"):
+			doc.append("items", {"item_no": r["item_no"], "qty": r.get("qty") or 1, "rate": r.get("rate") or 0})
+	for r in (data.get("labours") or []):
+		if r.get("labour_master"):
+			doc.append(
+				"job_labours",
+				{
+					"labour_master": r["labour_master"],
+					"technician": r.get("technician"),
+					"qty": r.get("qty") or 1,
+					"rate": r.get("rate") or 0,
+				},
+			)
+	for row_id in data.get("remove_items") or []:
+		for row in list(doc.items):
+			if row.name == row_id:
+				doc.remove(row)
+				break
+	doc.save()
+	return {"name": doc.name, "grand_total": doc.grand_total}
+
+
+# ============================================================================
+# Bulk delete (Laravel bulk-delete parity)
+# ============================================================================
+
+BULK_DELETABLE = {"Job Master", "Counter Invoice", "Item Master", "Labour Master", "Vehicle Brand", "Vehicle Model", "EV Vehicle"}
+
+
+@frappe.whitelist()
+def bulk_delete(doctype, names):
+	"""Delete many records, skipping ones blocked by links/permissions."""
+	if doctype not in BULK_DELETABLE:
+		frappe.throw(f"Bulk delete not allowed for {doctype}.")
+	if isinstance(names, str):
+		names = frappe.parse_json(names)
+	deleted, skipped = [], []
+	for name in names or []:
+		try:
+			if not frappe.has_permission(doctype, "delete", name):
+				raise frappe.PermissionError(f"No delete permission for {name}.")
+			frappe.delete_doc(doctype, name, ignore_permissions=False)
+			deleted.append(name)
+		except Exception as e:
+			skipped.append({"name": name, "reason": str(e)[:120]})
+	return {"deleted": deleted, "skipped": skipped, "message": f"Deleted {len(deleted)}, skipped {len(skipped)}."}
+
+
+# ============================================================================
+# CSV import (Laravel import preview/confirm parity, simplified)
+# ============================================================================
+
+IMPORTABLE = {
+	"customers": ("Customer", ["customer_name", "mobile_no", "email_id", "city"]),
+	"parts": ("Item Master", ["item_no", "item_name", "item_class", "uom", "standard_rate", "hsn_code"]),
+	"labour": ("Labour Master", ["service_name", "category", "standard_rate", "gst_rate"]),
+	"brands": ("Vehicle Brand", ["brand_name"]),
+}
+
+
+@frappe.whitelist()
+def import_csv(entity, rows):
+	"""Insert rows from a parsed CSV (header must match field list)."""
+	if entity not in IMPORTABLE:
+		frappe.throw(f"Unknown import entity: {entity}")
+	doctype, fields = IMPORTABLE[entity]
+	if not frappe.has_permission(doctype, "create"):
+		frappe.throw(f"Not permitted to create {doctype}.", frappe.PermissionError)
+	if isinstance(rows, str):
+		rows = frappe.parse_json(rows)
+	created, errors = [], []
+	for i, row in enumerate(rows or []):
+		try:
+			if isinstance(row, list):
+				row = dict(zip(fields, row))
+			doc = frappe.get_doc({"doctype": doctype, **{f: row.get(f) for f in fields if row.get(f) not in (None, "")}})
+			doc.insert()
+			created.append(doc.name)
+		except Exception as e:
+			errors.append({"row": i + 1, "error": str(e)[:150]})
+	return {"created": created, "errors": errors, "message": f"Imported {len(created)}, failed {len(errors)}."}
