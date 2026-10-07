@@ -1,12 +1,11 @@
-/** Minimal Frappe API client for the workshop PWA. */
+// Frappe API client (session auth, same-origin).
 const CSRF = () => window.csrf_token || "";
-export const BASE = window.location.pathname.startsWith("/evhub") ? "/evhub" : "/workshop";
 
 async function call(method, params = {}, opts = {}) {
   const url = new URL(`/api/method/${method}`, window.location.origin);
-  const isGet = (opts.httpMethod || "GET").toUpperCase() === "GET" && opts.useGet !== false && method.includes(".get_");
+  const useGet = opts.httpMethod !== "POST" && method.includes(".get_");
   let res;
-  if (isGet) {
+  if (useGet) {
     Object.entries(params).forEach(([k, v]) => v !== undefined && v !== null && url.searchParams.append(k, v));
     res = await fetch(url, { credentials: "same-origin" });
   } else {
@@ -19,8 +18,7 @@ async function call(method, params = {}, opts = {}) {
   }
   const data = await res.json().catch(() => ({}));
   if (!res.ok || data.exc) {
-    const msg = parseExc(data.exc) || data.message || `Request failed (${res.status})`;
-    throw new Error(msg);
+    throw new Error(parseExc(data.exc) || data.message || `Request failed (${res.status})`);
   }
   return data.message;
 }
@@ -28,31 +26,41 @@ async function call(method, params = {}, opts = {}) {
 function parseExc(exc) {
   try {
     const parsed = JSON.parse(exc);
-    const last = Array.isArray(parsed) ? parsed[parsed.length - 1] : parsed;
-    return (last || "").split("\n").filter((l) => l.includes(":")).pop()?.split(":").slice(-1)[0]?.trim();
+    const last = Array.isArray(parsed) ? parsed[parsed.length - 1] : String(parsed);
+    const lines = String(last).split("\n").filter((l) => l.includes(":"));
+    const tail = lines.pop() || "";
+    return tail.split(":").slice(-1)[0].trim() || tail.trim();
   } catch {
     return null;
   }
 }
 
-export const workshop = {
-  dashboard: () => call("ev_workshop.workshop_api.get_dashboard"),
-  jobs: (p) => call("ev_workshop.workshop_api.get_jobs", p || {}),
-  job: (name) => call("ev_workshop.workshop_api.get_job_detail", { name }),
-  advance: (name, to_status) =>
-    call("ev_workshop.workshop_api.advance_status", { name, to_status }, { httpMethod: "POST", useGet: false }),
-  counters: (p) => call("ev_workshop.workshop_api.get_counter_invoices", p || {}),
-  counter: (name) => call("ev_workshop.workshop_api.get_counter_invoice", { name }),
-  labour: (p) => call("ev_workshop.workshop_api.get_labour_masters", p || {}),
-  catalog: () => call("ev_workshop.workshop_api.get_catalog"),
-  payments: (p) => call("ev_workshop.workshop_api.get_payments", p || {}),
-  customers: (p) => call("ev_workshop.workshop_api.get_customers", p || {}),
-  customer: (customer) => call("ev_workshop.workshop_api.get_customer_profile", { customer }),
-  statement: (customer, from_date, to_date) =>
-    call("ev_workshop.workshop_api.get_customer_statement", { customer, from_date, to_date }),
-  analytics: () => call("ev_workshop.workshop_api.get_analytics"),
-  quoteUrl: (docname) => call("ev_workshop.api.send_quote_whatsapp", { docname }, { httpMethod: "POST", useGet: false }),
-  readyUrl: (docname) => call("ev_workshop.api.send_ready_notification", { docname }, { httpMethod: "POST", useGet: false }),
+const M = "ev_workshop.workshop_api";
+
+export const api = {
+  dashboard: () => call(`${M}.get_dashboard`),
+  jobs: (p) => call(`${M}.get_jobs`, p || {}),
+  job: (name) => call(`${M}.get_job_detail`, { name }),
+  advance: (name, to_status) => call(`${M}.advance_status`, { name, to_status }, { httpMethod: "POST" }),
+  counters: (p) => call(`${M}.get_counter_invoices`, p || {}),
+  counter: (name) => call(`${M}.get_counter_invoice`, { name }),
+  labour: (p) => call(`${M}.get_labour_masters`, p || {}),
+  catalog: () => call(`${M}.get_catalog`),
+  payments: (p) => call(`${M}.get_payments`, p || {}),
+  customers: (p) => call(`${M}.get_customers`, p || {}),
+  customer: (customer) => call(`${M}.get_customer_profile`, { customer }),
+  statement: (customer, from_date, to_date) => call(`${M}.get_customer_statement`, { customer, from_date, to_date }),
+  analytics: () => call(`${M}.get_analytics`),
+  employees: (p) => call(`${M}.get_employees`, p || {}),
+  parts: (p) => call(`${M}.get_parts`, p || {}),
+  jobOptions: () => call(`${M}.get_job_create_options`),
+  createJob: (data) => call(`${M}.create_job`, { data }, { httpMethod: "POST" }),
+  createCustomer: (data) => call(`${M}.create_customer`, { data }, { httpMethod: "POST" }),
+  createCounter: (data) => call(`${M}.create_counter`, { data }, { httpMethod: "POST" }),
+  submitCounter: (name) => call(`${M}.submit_counter`, { name }, { httpMethod: "POST" }),
+  recordPayment: (data) => call(`${M}.record_payment`, { data }, { httpMethod: "POST" }),
+  quoteUrl: (docname) => call("ev_workshop.api.send_quote_whatsapp", { docname }, { httpMethod: "POST" }),
+  readyUrl: (docname) => call("ev_workshop.api.send_ready_notification", { docname }, { httpMethod: "POST" }),
 };
 
 export async function login(usr, pwd) {
@@ -63,9 +71,9 @@ export async function login(usr, pwd) {
     body: new URLSearchParams({ usr, pwd }),
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok || data.exc) throw new Error("Invalid username or password.");
-  // Reload so the www shell re-renders with a fresh CSRF token.
-  window.location.href = BASE;
+  if (!res.ok || data.exc) throw new Error("These credentials do not match our records.");
+  window.location.hash = "#/dashboard";
+  window.location.reload();
   return data;
 }
 
@@ -81,5 +89,6 @@ export async function loggedUser() {
 
 export async function logout() {
   await fetch("/api/method/logout", { credentials: "same-origin" });
-  window.location.href = `${BASE}/login`;
+  window.location.hash = "#/login";
+  window.location.reload();
 }

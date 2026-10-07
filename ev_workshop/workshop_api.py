@@ -44,26 +44,47 @@ def _require_write(name=None):
 
 @frappe.whitelist()
 def get_dashboard():
-	"""Counts by status + today's admissions + month completed revenue."""
+	"""Dashboard KPIs mirroring the Laravel dashboard (today, revenue, dues)."""
 	_require_read()
-	statuses = {r.status for r in frappe.get_all("Job Master", fields=["status"], limit=10000)}
-	by_status = {}
-	for st in statuses:
-		by_status[st] = frappe.db.count("Job Master", {"status": st})
+	today_rows = frappe.db.sql(
+		"select status, count(name) as total from `tabJob Master` where date = %s group by status",
+		today(),
+		as_dict=True,
+	)
+	recent = frappe.get_list(
+		"Job Master",
+		fields=["name", "customer_name", "status"],
+		order_by="creation desc",
+		limit_page_length=5,
+	)
 	month_start = get_first_day(today())
-	revenue = (
+	month_revenue = (
 		frappe.db.sql(
-			"""select coalesce(sum(grand_total), 0) from `tabJob Master`
-			   where status='Completed' and date >= %s""",
+			"""select coalesce(sum(base_grand_total), 0) from `tabSales Invoice`
+			   where docstatus = 1 and posting_date >= %s""",
 			month_start,
 		)[0][0]
 		or 0
 	)
-	today_count = frappe.db.count("Job Master", {"date": today()})
+	outstanding = (
+		frappe.db.sql(
+			"""select coalesce(sum(case when outstanding_amount > 0 then outstanding_amount else 0 end), 0)
+			   from `tabSales Invoice` where docstatus = 1"""
+		)[0][0]
+		or 0
+	)
+	statuses = {r.status for r in frappe.get_all("Job Master", fields=["status"], limit=10000)}
+	by_status = {}
+	for st in statuses:
+		by_status[st] = frappe.db.count("Job Master", {"status": st})
 	return {
+		"today_count": sum(r.total for r in today_rows),
+		"today_by_status": {r.status: r.total for r in today_rows},
+		"recent": recent,
+		"month_revenue": flt(month_revenue),
+		"outstanding_dues": flt(outstanding),
 		"by_status": by_status,
-		"today_count": today_count,
-		"month_completed_revenue": flt(revenue),
+		"month_completed_revenue": flt(month_revenue),
 		"open_count": sum(v for k, v in by_status.items() if k not in ("Completed", "Cancelled")),
 	}
 
@@ -453,3 +474,271 @@ def get_counter_invoice(name):
 	if doc.get("sales_invoice"):
 		outstanding = flt(frappe.db.get_value("Sales Invoice", doc.sales_invoice, "outstanding_amount"))
 	return {"invoice": doc, "outstanding": outstanding}
+
+
+# ============================================================================
+# Employees + parts (Laravel employees / inventory parity)
+# ============================================================================
+
+@frappe.whitelist()
+def get_employees(search=None, role=None, active=None, limit=50):
+	"""Employee list with role/active filters."""
+	if not frappe.has_permission("Employee", "read"):
+		frappe.throw("Not permitted to view Employee.", frappe.PermissionError)
+	filters = {}
+	if role:
+		filters["status"] = role  # placeholder replaced below
+		del filters["status"]
+		filters["designation"] = role
+	if active == "active_only":
+		filters["status"] = "Active"
+	elif active == "inactive_only":
+		filters["status"] = ["!=", "Active"]
+	if search:
+		safe = str(search).replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+		filters["employee_name"] = ["like", f"%{safe}%"]
+	return frappe.get_list(
+		"Employee",
+		fields=["name", "employee_name", "designation", "department", "cell_number", "status"],
+		filters=filters,
+		order_by="employee_name",
+		limit_page_length=50,
+	)
+
+
+@frappe.whitelist()
+def get_parts(search=None, category=None, low_stock=False, limit=50):
+	"""Spare parts = Item Master + live ERPNext balance (Laravel inventory)."""
+	if not frappe.has_permission("Item Master", "read"):
+		frappe.throw("Not permitted to view Item Master.", frappe.PermissionError)
+	filters = {}
+	if category:
+		filters["item_class"] = category
+	if search:
+		safe = str(search).replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+		filters["item_name"] = ["like", f"%{safe}%"]
+	masters = frappe.get_list(
+		"Item Master",
+		fields=["name", "item_no", "item_name", "item_class", "uom", "standard_rate", "min_qty", "hsn_code"],
+		filters=filters,
+		order_by="item_name",
+		limit_page_length=limit,
+	)
+	company = frappe.db.get_default("company")
+	abbr = frappe.db.get_value("Company", company, "abbr") if company else None
+	warehouse = f"Stores - {abbr}" if abbr else None
+	out = []
+	for m in masters:
+		bal = 0
+		if frappe.db.exists("Item", m.item_no) and warehouse:
+			bal = frappe.db.get_value("Bin", {"item_code": m.item_no, "warehouse": warehouse}, "actual_qty") or 0
+		m["balance"] = flt(bal)
+		m["low"] = flt(bal) <= flt(m.min_qty or 0)
+		if low_stock and not m["low"]:
+			continue
+		out.append(m)
+	return out
+
+
+# ============================================================================
+# Create flows (Laravel create/store parity)
+# ============================================================================
+
+@frappe.whitelist()
+def get_job_create_options():
+	"""Dropdown data for the job create form."""
+	_require_read()
+	ownerships = frappe.get_list(
+		"Vehicle Ownership",
+		fields=["name", "vehicle", "owner_name", "customer_name", "registration_no", "model"],
+		order_by="customer_name",
+		limit_page_length=200,
+	)
+	technicians = frappe.get_list(
+		"Employee", fields=["name", "employee_name"], filters={"status": "Active"}, order_by="employee_name", limit_page_length=200
+	)
+	parts = frappe.get_list(
+		"Item Master", fields=["item_no", "item_name", "standard_rate"], order_by="item_name", limit_page_length=500
+	)
+	labours = frappe.get_list(
+		"Labour Master", fields=["name", "service_name", "standard_rate"], order_by="service_name", limit_page_length=200
+	)
+	return {"ownerships": ownerships, "technicians": technicians, "parts": parts, "labours": labours}
+
+
+@frappe.whitelist()
+def create_job(data):
+	"""Create a Job Master (Admitted) with items + labour lines."""
+	_require_write()
+	if isinstance(data, str):
+		data = frappe.parse_json(data)
+	doc = frappe.get_doc(
+		{
+			"doctype": "Job Master",
+			"date": data.get("date") or today(),
+			"vehicle_ownership": data.get("vehicle_ownership"),
+			"customer_type": data.get("customer_type") or "Customer",
+			"service_type": data.get("service_type") or "Paid",
+			"km_reading": data.get("km_reading") or 0,
+			"status": "Admitted",
+			"complaints": data.get("complaints"),
+			"supervisor": data.get("supervisor"),
+			"mechanic": data.get("mechanic"),
+			"company": data.get("company"),
+			"items": [
+				{
+					"item_no": r.get("item_no"),
+					"qty": r.get("qty") or 1,
+					"rate": r.get("rate") or 0,
+				}
+				for r in (data.get("items") or [])
+				if r.get("item_no")
+			],
+			"job_labours": [
+				{
+					"labour_master": r.get("labour_master"),
+					"technician": r.get("technician"),
+					"qty": r.get("qty") or 1,
+					"rate": r.get("rate") or 0,
+				}
+				for r in (data.get("labours") or [])
+				if r.get("labour_master")
+			],
+		}
+	)
+	doc.insert()
+	return {"name": doc.name}
+
+
+@frappe.whitelist()
+def create_customer(data):
+	"""Create ERPNext Customer + optional Vehicle Ownership + EV Vehicle."""
+	if not frappe.has_permission("Customer", "create"):
+		frappe.throw("Not permitted to create Customer.", frappe.PermissionError)
+	if isinstance(data, str):
+		data = frappe.parse_json(data)
+	customer = frappe.get_doc(
+		{
+			"doctype": "Customer",
+			"customer_name": data.get("customer_name"),
+			"customer_type": data.get("customer_type") or "Individual",
+			"mobile_no": data.get("mobile_no"),
+			"email_id": data.get("email"),
+			"city": data.get("city"),
+		}
+	).insert()
+	ownership = None
+	if data.get("registration_no"):
+		vehicle = frappe.db.exists("EV Vehicle", data["registration_no"])
+		if not vehicle:
+			vehicle = (
+				frappe.get_doc(
+					{
+						"doctype": "EV Vehicle",
+						"registration_no": data["registration_no"],
+						"model": data.get("model"),
+						"chassis_no": data.get("chassis_no"),
+					}
+				)
+				.insert()
+				.name
+			)
+		ownership = (
+			frappe.get_doc(
+				{
+					"doctype": "Vehicle Ownership",
+					"vehicle": vehicle,
+					"owner_name": customer.name,
+					"is_primary": 1,
+				}
+			)
+			.insert()
+			.name
+		)
+	return {"customer": customer.name, "ownership": ownership}
+
+
+@frappe.whitelist()
+def create_counter(data):
+	"""Create a draft Counter Invoice with item lines."""
+	if not frappe.has_permission("Counter Invoice", "create"):
+		frappe.throw("Not permitted to create Counter Invoice.", frappe.PermissionError)
+	if isinstance(data, str):
+		data = frappe.parse_json(data)
+	doc = frappe.get_doc(
+		{
+			"doctype": "Counter Invoice",
+			"company": data.get("company"),
+			"invoice_date": data.get("invoice_date") or today(),
+			"customer": data.get("customer"),
+			"walkin_name": data.get("walkin_name"),
+			"walkin_mobile": data.get("walkin_mobile"),
+			"gst_applicable": data.get("gst_applicable", 1),
+			"discount_percent": data.get("discount_percent") or 0,
+			"items": [
+				{
+					"item_master": r.get("item_master"),
+					"qty": r.get("qty") or 1,
+					"mrp": r.get("mrp") or 0,
+					"discount_percent": r.get("discount_percent") or 0,
+				}
+				for r in (data.get("items") or [])
+				if r.get("item_master")
+			],
+		}
+	)
+	doc.insert()
+	return {"name": doc.name, "grand_total": doc.grand_total}
+
+
+@frappe.whitelist()
+def submit_counter(name):
+	"""Submit a draft Counter Invoice (stock + Sales Invoice)."""
+	if not frappe.has_permission("Counter Invoice", "submit", name):
+		frappe.throw("Not permitted to submit Counter Invoice.", frappe.PermissionError)
+	doc = frappe.get_doc("Counter Invoice", name)
+	doc.submit()
+	return {"name": doc.name, "sales_invoice": doc.sales_invoice, "grand_total": doc.grand_total}
+
+
+@frappe.whitelist()
+def record_payment(data):
+	"""Record a Payment Entry against a Sales Invoice (Laravel payments.store)."""
+	if not frappe.has_permission("Payment Entry", "create"):
+		frappe.throw("Not permitted to create Payment Entry.", frappe.PermissionError)
+	if isinstance(data, str):
+		data = frappe.parse_json(data)
+	si = frappe.get_doc("Sales Invoice", data.get("sales_invoice"))
+	if si.docstatus != 1:
+		frappe.throw("Sales Invoice must be submitted before recording payment.")
+	outstanding = flt(si.outstanding_amount)
+	amount = flt(data.get("amount"))
+	if amount <= 0:
+		frappe.throw("Amount must be greater than zero.")
+	if amount - outstanding > 0.01:
+		frappe.throw(f"Amount exceeds outstanding ({outstanding}).")
+	pe = frappe.get_doc(
+		{
+			"doctype": "Payment Entry",
+			"payment_type": "Receive",
+			"party_type": "Customer",
+			"party": si.customer,
+			"company": si.company,
+			"posting_date": data.get("payment_date") or today(),
+			"mode_of_payment": data.get("mode_of_payment") or "Cash",
+			"paid_amount": amount,
+			"received_amount": amount,
+			"reference_no": data.get("reference_no"),
+			"remarks": data.get("notes"),
+			"references": [
+				{
+					"reference_doctype": "Sales Invoice",
+					"reference_name": si.name,
+					"allocated_amount": amount,
+				}
+			],
+		}
+	)
+	pe.insert()
+	pe.submit()
+	return {"name": pe.name}
