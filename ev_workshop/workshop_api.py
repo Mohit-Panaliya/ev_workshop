@@ -732,6 +732,8 @@ def record_payment(data):
 			"mode_of_payment": data.get("mode_of_payment") or "Cash",
 			"paid_amount": amount,
 			"received_amount": amount,
+			"source_exchange_rate": 1,
+			"target_exchange_rate": 1,
 			"reference_no": data.get("reference_no"),
 			"remarks": data.get("notes"),
 			"references": [
