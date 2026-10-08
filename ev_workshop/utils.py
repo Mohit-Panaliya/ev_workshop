@@ -193,16 +193,12 @@ def sync_customer_contact(customer_name, mobile_no=None, email=None):
 	"""
 	contact = frappe.db.get_value("Customer", customer_name, "customer_primary_contact")
 	if contact and frappe.db.exists("Contact", contact):
-		doc = frappe.get_doc("Contact", contact)
-		changed = False
-		if mobile_no is not None and doc.mobile_no != mobile_no:
-			doc.mobile_no = mobile_no
-			changed = True
-		if email is not None and doc.email_id != email:
-			doc.email_id = email
-			changed = True
-		if changed:
-			doc.save(ignore_permissions=False)
+		# Direct writes: Contact.save() validation reshuffles phone/email
+		# child tables and can revert field edits on some versions.
+		if mobile_no is not None:
+			frappe.db.set_value("Contact", contact, "mobile_no", mobile_no)
+		if email is not None:
+			frappe.db.set_value("Contact", contact, "email_id", email)
 		return contact
 
 	doc = frappe.get_doc(
