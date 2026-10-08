@@ -376,7 +376,7 @@ def get_analytics(period="monthly"):
 # ============================================================================
 
 EXPORT_ENTITIES = {
-	"customers": ("Customer", ["name", "customer_name", "mobile_no", "email_id", "city"]),
+	"customers": ("Customer", ["name", "customer_name", "mobile_no", "email_id", "customer_type"]),
 	"jobs": ("Job Master", ["name", "date", "customer_name", "status", "service_type", "grand_total"]),
 	"counter_invoices": ("Counter Invoice", ["name", "invoice_date", "customer", "walkin_name", "grand_total"]),
 	"labour_masters": ("Labour Master", ["name", "service_name", "category", "standard_rate", "gst_rate"]),
@@ -426,7 +426,7 @@ def get_customers(search=None, limit=20):
 		limit = 20
 	return frappe.get_list(
 		"Customer",
-		fields=["name", "customer_name", "mobile_no", "email_id", "city"],
+		fields=["name", "customer_name", "mobile_no", "email_id", "customer_type"],
 		filters=filters,
 		order_by="customer_name",
 		limit_page_length=limit,
@@ -680,7 +680,6 @@ def create_customer(data):
 			"customer_type": data.get("customer_type") or "Individual",
 			"mobile_no": data.get("mobile_no"),
 			"email_id": data.get("email"),
-			"city": data.get("city"),
 		}
 	).insert()
 	ownership = None
@@ -933,7 +932,7 @@ def bulk_delete(doctype, names):
 # ============================================================================
 
 IMPORTABLE = {
-	"customers": ("Customer", ["customer_name", "mobile_no", "email_id", "city"]),
+	"customers": ("Customer", ["customer_name", "mobile_no", "email_id"]),
 	"parts": ("Item Master", ["item_no", "item_name", "item_class", "uom", "standard_rate", "hsn_code"]),
 	"labour": ("Labour Master", ["service_name", "category", "standard_rate", "gst_rate"]),
 	"brands": ("Vehicle Brand", ["brand_name"]),
@@ -975,7 +974,7 @@ def update_customer(name, data):
 	if isinstance(data, str):
 		data = frappe.parse_json(data)
 	doc = frappe.get_doc("Customer", name)
-	for f in ("customer_name", "mobile_no", "email_id", "city", "customer_type"):
+	for f in ("customer_name", "mobile_no", "email_id"):
 		if f in data:
 			doc.set(f, data[f])
 	doc.save()

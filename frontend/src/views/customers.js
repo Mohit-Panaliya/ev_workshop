@@ -15,7 +15,7 @@ export async function CustomersView() {
     <form id="c-filter" class="flex gap-3"><div class="flex-1">${searchBar("search", "", "Search by name or mobile...")}</div>
     ${button(`${icon("magnifying-glass", "w-4 h-4")}Search`, { type: "submit" })}</form>
     <div class="flex justify-end gap-2 items-center">
-      ${importButton("customers", "customer_name,mobile_no,email_id,city")}
+      ${importButton("customers", "customer_name,mobile_no,email_id")}
       ${button("Delete selected", { variant: "danger", attrs: `data-action="bulk-delete" data-doctype="Customer"` })}
     </div>
     <div id="c-table"></div>
@@ -39,9 +39,9 @@ CustomersView.mounted = async (view) => {
       ${td(`<input type="checkbox" data-name="${escapeHtml(c.name)}" class="rounded border-gray-300 text-primary">`, "w-10")}
       ${td(`<a class="text-primary hover:text-primary-700 font-medium" href="#/customers/${encodeURIComponent(c.name)}">${escapeHtml(c.customer_name)}</a>`)}
       ${td(escapeHtml(c.mobile_no || "-"))}
-      ${td(escapeHtml(c.city || "-"))}
+      ${td(escapeHtml(c.customer_type || "-"))}
     </tr>`).join("");
-    table.innerHTML = dataTable(`${th("")}${th("Display Name")}${th("Mobile")}${th("City")}`, html, "users", "No customers found.");
+    table.innerHTML = dataTable(`${th("")}${th("Display Name")}${th("Mobile")}${th("Type")}`, html, "users", "No customers found.");
     bindBulkDelete(view, table);
     bindImport(view, () => form.dispatchEvent(new Event("submit")));
   }
@@ -67,7 +67,7 @@ export async function CustomerDetailView(name) {
     <div class="flex items-center gap-3">
       <span class="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center shrink-0">${icon("user", "w-5 h-5 text-primary")}</span>
       <div><h2 class="font-semibold text-xl text-gray-800 leading-tight">${escapeHtml(p.customer_name)}</h2>
-      <p class="text-sm text-gray-600">${initials} · ${escapeHtml(p.mobile_no || "")} · ${escapeHtml(p.city || "")}</p></div>
+      <p class="text-sm text-gray-600">${initials} · ${escapeHtml(p.mobile_no || "")}</p></div>
     </div>
     <div class="flex flex-wrap items-center gap-3">
       ${button("Edit", { variant: "secondary", attrs: `data-action="edit-customer"` })}
@@ -154,7 +154,6 @@ CustomerDetailView.mounted = async (view, m) => {
       <div>${fieldLabel("Customer Name")}${textInput("customer_name", p.customer_name || "")}</div>
       <div>${fieldLabel("Mobile")}${textInput("mobile_no", p.mobile_no || "")}</div>
       <div>${fieldLabel("Email")}${textInput("email_id", p.email_id || "", "email")}</div>
-      <div>${fieldLabel("City")}${textInput("city", p.city || "")}</div>
       <div class="col-span-2 flex justify-end gap-2">
         ${button("Cancel", { variant: "ghost", attrs: `type="button" data-cancel-edit=""` })}
         ${button("Save", { variant: "primary", type: "submit" })}
@@ -212,7 +211,7 @@ async function CustomerCreateView() {
       <div>${fieldLabel("Customer Name")}${textInput("customer_name", "", "text", "required")}</div>
       <div>${fieldLabel("Mobile")}${textInput("mobile_no")}</div>
       <div>${fieldLabel("Email")}${textInput("email", "", "email")}</div>
-      <div>${fieldLabel("City")}${textInput("city")}</div>
+      
       <div>${fieldLabel("Vehicle Registration")}${textInput("registration_no")}</div>
       <div>${fieldLabel("Model")}${textInput("model")}</div>
       <div class="col-span-2 flex justify-end">${button("Create Customer", { variant: "primary", type: "submit" })}</div>
