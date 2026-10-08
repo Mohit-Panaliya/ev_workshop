@@ -8,6 +8,8 @@ so Mechanics see only what their role allows. Used by ``frontend/`` and the
 import frappe
 from frappe.utils import flt, get_first_day, getdate, today
 
+from ev_workshop.utils import resolve_item_master, sync_customer_contact
+
 from ev_workshop.utils import resolve_item_master
 
 #: Allowed status transitions for the PWA "advance" action.
@@ -678,10 +680,9 @@ def create_customer(data):
 			"doctype": "Customer",
 			"customer_name": data.get("customer_name"),
 			"customer_type": data.get("customer_type") or "Individual",
-			"mobile_no": data.get("mobile_no"),
-			"email_id": data.get("email"),
 		}
 	).insert()
+	sync_customer_contact(customer.name, data.get("mobile_no"), data.get("email"))
 	ownership = None
 	if data.get("registration_no"):
 		vehicle = frappe.db.exists("EV Vehicle", data["registration_no"])
@@ -974,10 +975,13 @@ def update_customer(name, data):
 	if isinstance(data, str):
 		data = frappe.parse_json(data)
 	doc = frappe.get_doc("Customer", name)
-	for f in ("customer_name", "mobile_no", "email_id"):
+	for f in ("customer_name", "customer_type"):
 		if f in data:
 			doc.set(f, data[f])
 	doc.save()
+	# Mobile/email live on the Primary Contact (fetched onto Customer)
+	if "mobile_no" in data or "email_id" in data:
+		sync_customer_contact(name, data.get("mobile_no"), data.get("email_id"))
 	return {"name": doc.name}
 
 

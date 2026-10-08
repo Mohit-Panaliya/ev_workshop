@@ -185,6 +185,39 @@ def ensure_service_item(labour_master_no):
 	return item.name
 
 
+def sync_customer_contact(customer_name, mobile_no=None, email=None):
+	"""Keep the Primary Contact in sync (ERPNext stores mobile/email there).
+
+	Customer.mobile_no/email_id are fetch_from the primary contact, so
+	writing them on Customer alone is wiped on save. Returns contact name.
+	"""
+	contact = frappe.db.get_value("Customer", customer_name, "customer_primary_contact")
+	if contact and frappe.db.exists("Contact", contact):
+		doc = frappe.get_doc("Contact", contact)
+		changed = False
+		if mobile_no is not None and doc.mobile_no != mobile_no:
+			doc.mobile_no = mobile_no
+			changed = True
+		if email is not None and doc.email_id != email:
+			doc.email_id = email
+			changed = True
+		if changed:
+			doc.save(ignore_permissions=False)
+		return contact
+
+	doc = frappe.get_doc(
+		{
+			"doctype": "Contact",
+			"first_name": customer_name,
+			"mobile_no": mobile_no,
+			"email_id": email,
+			"links": [{"link_doctype": "Customer", "link_name": customer_name}],
+		}
+	).insert(ignore_permissions=False)
+	frappe.db.set_value("Customer", customer_name, "customer_primary_contact", doc.name)
+	return doc.name
+
+
 def resolve_job_customer(doc):
 	"""ERPNext Customer for a Job Master, across old and new data.
 
