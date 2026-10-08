@@ -68,25 +68,25 @@ AnalyticsView.mounted = async (view) => {
     type: "bar",
     data: { labels: (a.revenue_trend || []).map((r) => r.month), datasets: [{ data: (a.revenue_trend || []).map((r) => Number(r.revenue)), backgroundColor: "#6366f1", borderRadius: 6 }] },
     options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { ticks: { callback: (v) => cur + Number(v).toLocaleString("en-IN") } } } },
-  });
+  }));
   const split = a.revenue_split || {};
   charts.push(new Chart(view.querySelector("#ch-split"), {
     type: "doughnut",
     data: { labels: Object.keys(split), datasets: [{ data: Object.values(split).map(Number), backgroundColor: ["#6366f1", "#16a34a", "#94a3b8"] }] },
     options: { maintainAspectRatio: false },
-  });
+  }));
   const st = a.jobs_by_status || {};
   charts.push(new Chart(view.querySelector("#ch-status"), {
     type: "doughnut",
     data: { labels: Object.keys(st).map((s) => s.replace(/_/g, " ")), datasets: [{ data: Object.values(st).map(Number), backgroundColor: ["#e5e7eb", "#c7d2fe", "#fde68a", "#a7f3d0", "#fca5a5", "#ddd6fe", "#bae6fd", "#fed7aa"] }] },
     options: { maintainAspectRatio: false },
-  });
+  }));
   const pm = a.payments_by_mode || [];
   charts.push(new Chart(view.querySelector("#ch-pay"), {
     type: "doughnut",
     data: { labels: pm.map((p) => p.mode), datasets: [{ data: pm.map((p) => Number(p.total)), backgroundColor: ["#6366f1", "#16a34a", "#f59e0b", "#ef4444", "#8b5cf6"] }] },
     options: { maintainAspectRatio: false },
-  });
+  }));
 
   view.querySelector("#an-tables").innerHTML = `
     <div class="bg-card border rounded-2xl p-6 shadow-sm"><h3 class="text-sm font-semibold tracking-wider uppercase text-muted-foreground mb-4">Top customers</h3>
