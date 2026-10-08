@@ -29,8 +29,16 @@ PaymentsView.mounted = async (view) => {
     ${td(`<span class="capitalize">${escapeHtml(p.mode_of_payment || "-")}</span>`)}
     ${td(escapeHtml((p.remarks || "").slice(0, 30)))}
     ${td(money(p.paid_amount), "text-right font-medium text-gray-900")}
+    ${td(`<button class="text-red-600 hover:text-red-800 text-sm" data-void="${p.name}">Void</button>`, "text-right")}
   </tr>`).join("");
-  table.innerHTML = dataTable(`${th("Payment Date")}${th("Customer")}${th("Payment Mode")}${th("Notes")}${th("Amount", "text-right")}`, rows, "banknotes", "No payments yet.");
+  table.innerHTML = dataTable(`${th("Payment Date")}${th("Customer")}${th("Payment Mode")}${th("Notes")}${th("Amount", "text-right")}${th("", "text-right")}`, rows, "banknotes", "No payments yet.");
+  table.querySelectorAll("[data-void]").forEach((b) => b.addEventListener("click", async () => {
+    if (!confirm(`Void payment ${b.dataset.void}?`)) return;
+    try {
+      await api.voidPayment(b.dataset.void);
+      window.location.reload();
+    } catch (e) { alert(e.message); }
+  }));
   const total = r.payments.reduce((s, p) => s + Number(p.paid_amount || 0), 0);
   summary.innerHTML = `<div class="mt-6 bg-white rounded-xl border border-border shadow-sm p-6">
     <h3 class="font-semibold text-gray-900 mb-4">Current Page Summary</h3>

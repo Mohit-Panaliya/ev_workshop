@@ -1,7 +1,7 @@
 // employees/index parity.
 import { api } from "../api.js";
 import { icon } from "../icons.js";
-import { badge, dataTable, th, td, fieldLabel, escapeHtml } from "../ui.js";
+import { badge, button, card, dataTable, th, td, fieldLabel, textInput, escapeHtml } from "../ui.js";
 
 const ROLE_BADGES = { technician: "primary", supervisor: "purple", front_desk: "purple", admin: "red", default: "gray" };
 
@@ -41,4 +41,23 @@ EmployeesView.mounted = async (view) => {
   }
   form.addEventListener("change", load);
   await load();
+  const add = document.createElement("div");
+  add.innerHTML = `<div class="mt-4">${card(`<details><summary class="cursor-pointer font-semibold text-gray-900">Add Employee</summary>
+    <form id="emp-form" class="grid grid-cols-2 gap-3 mt-3">
+      <div>${fieldLabel("First Name")}${textInput("first_name", "", "text", "required")}</div>
+      <div>${fieldLabel("Last Name")}${textInput("last_name")}</div>
+      <div>${fieldLabel("Mobile")}${textInput("mobile_no")}</div>
+      <div>${fieldLabel("Role")}<select name="designation" class="block w-full rounded-md border border-gray-300 text-sm"><option>Technician</option><option>Supervisor</option><option>Helper</option><option>Front Desk</option><option>Admin</option></select></div>
+      <div>${fieldLabel("Date of Joining")}${textInput("date_of_joining", new Date().toISOString().slice(0, 10), "date")}</div>
+      <div>${fieldLabel("Department")}${textInput("department")}</div>
+      <div class="col-span-2 flex justify-end">${button("Create", { variant: "primary", type: "submit" })}</div>
+    </form>`)}</div>`;
+  view.appendChild(add);
+  add.querySelector("#emp-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    try {
+      await api.createEmployee(Object.fromEntries(new FormData(e.target).entries()));
+      window.location.reload();
+    } catch (ex) { alert(ex.message); }
+  });
 };

@@ -25,5 +25,14 @@
   "print_format_type": "Jinja",
   "standard": "No",
   "html": "<div style=\"font-family:sans-serif;max-width:760px;margin:auto\">\n<h2 style=\"text-align:center\">Counter Sale Receipt</h2>\n<p style=\"text-align:center\">{{ doc.name }} &middot; {{ doc.get_formatted('invoice_date') }}</p>\n<hr>\n<p><b>Customer:</b> {{ doc.customer or doc.walkin_name }} {% if doc.walkin_mobile %}({{ doc.walkin_mobile }}){% endif %}</p>\n<table width=\"100%\" border=\"1\" cellspacing=\"0\" cellpadding=\"6\">\n<tr><th>#</th><th>Item</th><th>Qty</th><th>MRP</th><th>Total</th></tr>\n{% for row in doc.items %}\n<tr><td>{{ loop.index }}</td><td>{{ row.item_name or row.item_master }}</td><td>{{ row.qty }}</td><td>{{ row.mrp }}</td><td>{{ row.line_total }}</td></tr>\n{% endfor %}\n</table>\n<p style=\"text-align:right\">CGST: {{ doc.cgst_amount }} &middot; SGST: {{ doc.sgst_amount }}<br><b>Grand Total: {{ doc.grand_total }}</b></p>\n{% if doc.sales_invoice %}<p>Sales Invoice: {{ doc.sales_invoice }}</p>{% endif %}\n</div>"
+ },
+ {
+  "doctype": "Print Format",
+  "name": "EV Customer Statement",
+  "module": "EV Workshop",
+  "doc_type": "Customer",
+  "print_format_type": "Jinja",
+  "standard": "No",
+  "html": "<div style=\"font-family:sans-serif;max-width:760px;margin:auto\">\n<h2 style=\"text-align:center\">Customer Statement</h2>\n<p style=\"text-align:center\">{{ doc.customer_name }} &middot; {{ doc.mobile_no }}</p>\n<hr>\n{% set invoices = frappe.get_all('Sales Invoice', filters={'customer': doc.name, 'docstatus': 1}, fields=['name','posting_date','grand_total','paid_amount','outstanding_amount'], order_by='posting_date desc') %}\n<table width=\"100%\" border=\"1\" cellspacing=\"0\" cellpadding=\"6\">\n<tr><th>Invoice</th><th>Date</th><th>Billed</th><th>Paid</th><th>Due</th></tr>\n{% for i in invoices %}\n<tr><td>{{ i.name }}</td><td>{{ i.posting_date }}</td><td>{{ i.grand_total }}</td><td>{{ i.paid_amount }}</td><td>{{ i.outstanding_amount }}</td></tr>\n{% endfor %}\n</table>\n</div>"
  }
 ]

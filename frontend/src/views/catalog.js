@@ -1,7 +1,7 @@
 // vehicle_catalog/index parity (brands + expandable models).
 import { api } from "../api.js";
 import { icon } from "../icons.js";
-import { badge, dataTable, th, td, escapeHtml } from "../ui.js";
+import { badge, button, card, dataTable, th, td, fieldLabel, textInput, escapeHtml } from "../ui.js";
 
 export async function CatalogView() {
   const header = `<div class="flex justify-between items-center">
@@ -37,4 +37,20 @@ CatalogView.mounted = async (view) => {
     const row = table.querySelector(`[data-models="${btn.dataset.expand}"]`);
     row.classList.toggle("hidden");
   }));
+  const add = document.createElement("div");
+  add.innerHTML = `<div class="mt-4">${card(`<details><summary class="cursor-pointer font-semibold text-gray-900">Add Brand / Model</summary>
+    <form id="cat-form" class="grid grid-cols-2 gap-3 mt-3">
+      <div>${fieldLabel("Brand Name")}${textInput("brand_name", "", "text", "required")}</div>
+      <div>${fieldLabel("Model Name (optional)")}${textInput("model_name")}</div>
+      <div>${fieldLabel("Battery Type")}<select name="battery_type" class="block w-full rounded-md border border-gray-300 text-sm"><option>Lithium-ion</option><option>Lead-acid</option><option>Other</option></select></div>
+      <div class="flex items-end">${button("Create", { variant: "primary", type: "submit" })}</div>
+    </form>`)}</div>`;
+  view.appendChild(add);
+  add.querySelector("#cat-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    try {
+      await api.createBrandModel(Object.fromEntries(new FormData(e.target).entries()));
+      window.location.reload();
+    } catch (ex) { alert(ex.message); }
+  });
 };

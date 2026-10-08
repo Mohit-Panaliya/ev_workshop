@@ -7,11 +7,12 @@ import { bindBulkDelete } from "../list.js";
 const PAY_BADGES = { paid: "green", partially_paid: "amber", unbilled: "gray", default: "red" };
 
 function payStatus(j) {
-  if (j.grand_total == null) return "unbilled";
-  const paid = Number(j.amount_paid || 0);
-  if (paid <= 0) return "unpaid";
-  if (paid >= Number(j.grand_total)) return "paid";
-  return "partially_paid";
+  const billed = Number(j.amount_billed ?? j.grand_total ?? 0);
+  if (!billed) return "unbilled";
+  const due = Number(j.outstanding ?? (billed - Number(j.amount_paid || 0)));
+  if (due <= 0) return "paid";
+  if (due < billed) return "partially_paid";
+  return "unpaid";
 }
 
 export async function JobsView() {
@@ -28,6 +29,8 @@ export async function JobsView() {
       ${button(`${icon("magnifying-glass", "w-4 h-4")}Search`, { type: "submit" })}</div>
       <div class="bg-white rounded-lg border border-gray-200 p-4"><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div>${fieldLabel("Status")}<select name="status" class="w-full border-gray-300 rounded-lg"><option value="">All Statuses</option>${["Admitted", "Inspection", "Quoted", "Approved", "Repairing", "Ready", "Completed", "Cancelled"].map((s) => `<option>${s}</option>`).join("")}</select></div>
+        <div>${fieldLabel("From")}<input type="date" name="from_date" class="w-full border-gray-300 rounded-lg"></div>
+        <div>${fieldLabel("To")}<input type="date" name="to_date" class="w-full border-gray-300 rounded-lg"></div>
         <div>${fieldLabel("Per page")}<select name="per_page" class="w-full border-gray-300 rounded-lg"><option>15</option><option>25</option><option>50</option><option>100</option></select></div>
       </div></div>
     </form>
@@ -44,7 +47,7 @@ JobsView.mounted = async (view) => {
   const form = view.querySelector("#jobs-filter");
   async function load() {
     const fd = new FormData(form);
-    const params = { search: fd.get("search") || undefined, status: fd.get("status") || undefined, limit: Number(fd.get("per_page")) || 15 };
+    const params = { search: fd.get("search") || undefined, status: fd.get("status") || undefined, limit: Number(fd.get("per_page")) || 15, from_date: fd.get("from_date") || undefined, to_date: fd.get("to_date") || undefined };
     let jobs = [];
     try {
       const r = await api.jobs(params);
@@ -197,6 +200,26 @@ JobDetailView.mounted = async (view, m) => {
     return;
   }
   const actions = view.parentElement?.parentElement?.querySelector("#job-actions") || document.querySelector("#job-actions");
+  actions.innerHTML = button("Edit Job", { variant: "secondary", attrs: `data-edit-job=""` }) + actions.innerHTML;
+  actions.querySelector("[data-edit-job]").addEventListener("click", async () => {
+    const f = document.createElement("div");
+    f.innerHTML = card(`<form id="job-edit" class="grid grid-cols-2 gap-4">
+      <div>${fieldLabel("Service Type")}<select name="service_type" class="block w-full rounded-md border border-gray-300 text-sm"><option>Free</option><option>Paid</option></select></div>
+      <div>${fieldLabel("KM Reading")}${textInput("km_reading", data.job.km_reading || 0, "number")}</div>
+      <div>${fieldLabel("Supervisor (Employee ID)")}${textInput("supervisor", data.job.supervisor || "")}</div>
+      <div>${fieldLabel("Mechanic (Employee ID)")}${textInput("mechanic", data.job.mechanic || "")}</div>
+      <div class="col-span-2">${fieldLabel("Complaints")}<textarea name="complaints" rows="2" class="block w-full rounded-md border border-gray-300 text-sm">${escapeHtml(data.job.complaints || "")}</textarea></div>
+      <div class="col-span-2 flex justify-end">${button("Save", { variant: "primary", type: "submit" })}</div>
+    </form>`);
+    view.querySelector("#job-flash").appendChild(f);
+    f.querySelector("#job-edit").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      try {
+        await api.updateJob(name, Object.fromEntries(new FormData(e.target).entries()));
+        window.location.reload();
+      } catch (ex) { alert(ex.message); }
+    });
+  });
   let data;
   try {
     data = await api.job(name);

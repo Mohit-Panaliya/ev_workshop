@@ -79,6 +79,18 @@ def get_dashboard():
 	by_status = {}
 	for st in statuses:
 		by_status[st] = frappe.db.count("Job Master", {"status": st})
+	# Low-stock card (Laravel dashboard parity)
+	company = frappe.db.get_default("company")
+	abbr = frappe.db.get_value("Company", company, "abbr") if company else None
+	warehouse = f"Stores - {abbr}" if abbr else None
+	low_stock = []
+	if warehouse:
+		low_stock = frappe.db.sql(
+			"""select item_code, actual_qty from `tabBin`
+			   where warehouse = %s and actual_qty <= 5 order by actual_qty limit 10""",
+			warehouse,
+			as_dict=True,
+		)
 	return {
 		"today_count": sum(r.total for r in today_rows),
 		"today_by_status": {r.status: r.total for r in today_rows},
@@ -86,14 +98,16 @@ def get_dashboard():
 		"month_revenue": flt(month_revenue),
 		"outstanding_dues": flt(outstanding),
 		"by_status": by_status,
+		"low_stock": low_stock,
+		"low_stock_count": len(low_stock),
 		"month_completed_revenue": flt(month_revenue),
 		"open_count": sum(v for k, v in by_status.items() if k not in ("Completed", "Cancelled")),
 	}
 
 
 @frappe.whitelist()
-def get_jobs(status=None, search=None, limit=20, offset=0):
-	"""Paginated job list for the PWA. `search` matches job/customer/mobile."""
+def get_jobs(status=None, search=None, limit=20, offset=0, from_date=None, to_date=None):
+	"""Paginated job list with payment summary (Laravel job-cards index)."""
 	_require_read()
 	try:
 		limit = min(max(int(limit or 20), 1), 100)
@@ -104,10 +118,16 @@ def get_jobs(status=None, search=None, limit=20, offset=0):
 	filters = {}
 	if status:
 		filters["status"] = status
+	if from_date and to_date:
+		filters["date"] = ["between", [from_date, to_date]]
+	elif from_date:
+		filters["date"] = [">=", from_date]
+	elif to_date:
+		filters["date"] = ["<=", to_date]
 
 	jobs = frappe.get_list(
 		"Job Master",
-		fields=JOB_LIST_FIELDS,
+		fields=[*JOB_LIST_FIELDS, "vehicle_ownership"],
 		filters=filters,
 		order_by="date desc, creation desc",
 		limit_page_length=limit,
@@ -122,6 +142,17 @@ def get_jobs(status=None, search=None, limit=20, offset=0):
 			or safe in str(j.get("customer_name") or "").lower()
 			or safe in str(j.get("mobile_no") or "")
 		]
+	# Payment summary per job from linked Sales Invoices (Laravel payment badges)
+	for j in jobs:
+		inv = frappe.db.sql(
+			"""select coalesce(sum(grand_total), 0), coalesce(sum(outstanding_amount), 0)
+			   from `tabSales Invoice` where docstatus = 1 and job_reference = %s""",
+			j.name,
+		)
+		billed, due = (inv[0] if inv else (0, 0))
+		j["amount_billed"] = flt(billed)
+		j["amount_paid"] = flt(billed) - flt(due)
+		j["outstanding"] = max(flt(due), 0)
 	return {"jobs": jobs, "has_more": len(jobs) == limit}
 
 
@@ -247,19 +278,42 @@ def get_customer_statement(customer, from_date=None, to_date=None):
 # ============================================================================
 
 @frappe.whitelist()
-def get_analytics():
-	"""Revenue trend, job split, payments by mode, top customers, stock."""
+def get_analytics(period="monthly"):
+	"""Revenue trend, job split, payments by mode, top customers, stock.
+
+	`period` mirrors the Laravel revenue filter: daily (last 30 days),
+	weekly (last 12 weeks) or monthly (last 6 months).
+	"""
 	_require_read()
 	analytics = {}
 
-	analytics["revenue_trend"] = frappe.db.sql(
-		"""select date_format(posting_date, '%Y-%m') as month,
-		          sum(base_grand_total) as revenue, count(name) as invoices
-		   from `tabSales Invoice` where docstatus = 1
-		   and posting_date >= date_sub(curdate(), interval 6 month)
-		   group by month order by month""",
-		as_dict=True,
-	)
+	if period == "daily":
+		analytics["revenue_trend"] = frappe.db.sql(
+			"""select date(posting_date) as month, sum(base_grand_total) as revenue,
+			          count(name) as invoices
+			   from `tabSales Invoice` where docstatus = 1
+			   and posting_date >= date_sub(curdate(), interval 30 day)
+			   group by date(posting_date) order by date(posting_date)""",
+			as_dict=True,
+		)
+	elif period == "weekly":
+		analytics["revenue_trend"] = frappe.db.sql(
+			"""select yearweek(posting_date) as month, sum(base_grand_total) as revenue,
+			          count(name) as invoices
+			   from `tabSales Invoice` where docstatus = 1
+			   and posting_date >= date_sub(curdate(), interval 12 week)
+			   group by yearweek(posting_date) order by yearweek(posting_date)""",
+			as_dict=True,
+		)
+	else:
+		analytics["revenue_trend"] = frappe.db.sql(
+			"""select date_format(posting_date, '%Y-%m') as month,
+			          sum(base_grand_total) as revenue, count(name) as invoices
+			   from `tabSales Invoice` where docstatus = 1
+			   and posting_date >= date_sub(curdate(), interval 6 month)
+			   group by month order by month""",
+			as_dict=True,
+		)
 
 	status_rows = frappe.db.sql(
 		"select status, count(name) as total from `tabJob Master` group by status", as_dict=True
@@ -907,3 +961,126 @@ def import_csv(entity, rows):
 		except Exception as e:
 			errors.append({"row": i + 1, "error": str(e)[:150]})
 	return {"created": created, "errors": errors, "message": f"Imported {len(created)}, failed {len(errors)}."}
+
+
+# ============================================================================
+# Gap closures: customer edit, payment void, richer lists, employee create
+# ============================================================================
+
+@frappe.whitelist()
+def update_customer(name, data):
+	"""Edit Customer master fields (Laravel customers.update parity)."""
+	if not frappe.has_permission("Customer", "write", name):
+		frappe.throw("Not permitted to update Customer.", frappe.PermissionError)
+	if isinstance(data, str):
+		data = frappe.parse_json(data)
+	doc = frappe.get_doc("Customer", name)
+	for f in ("customer_name", "mobile_no", "email_id", "city", "customer_type"):
+		if f in data:
+			doc.set(f, data[f])
+	doc.save()
+	return {"name": doc.name}
+
+
+@frappe.whitelist()
+def void_payment(name):
+	"""Cancel (void) a submitted Payment Entry (Laravel payments.destroy)."""
+	if not frappe.has_permission("Payment Entry", "cancel", name):
+		frappe.throw("Not permitted to void Payment Entry.", frappe.PermissionError)
+	doc = frappe.get_doc("Payment Entry", name)
+	if doc.docstatus != 1:
+		frappe.throw("Only submitted payments can be voided.")
+	doc.cancel()
+	return {"name": doc.name, "status": doc.status}
+
+
+@frappe.whitelist()
+def create_employee(data):
+	"""Create an HRMS Employee (Laravel employees.store parity)."""
+	if not frappe.has_permission("Employee", "create"):
+		frappe.throw("Not permitted to create Employee.", frappe.PermissionError)
+	if isinstance(data, str):
+		data = frappe.parse_json(data)
+	doc = frappe.get_doc(
+		{
+			"doctype": "Employee",
+			"first_name": data.get("first_name"),
+			"last_name": data.get("last_name"),
+			"gender": data.get("gender") or "Male",
+			"date_of_birth": data.get("date_of_birth") or "1990-01-01",
+			"date_of_joining": data.get("date_of_joining"),
+			"company": data.get("company") or frappe.db.get_default("company"),
+			"status": "Active",
+			"cell_number": data.get("mobile_no"),
+			"designation": data.get("designation") or "Technician",
+			"department": data.get("department"),
+		}
+	)
+	doc.insert()
+	return {"name": doc.name}
+
+
+@frappe.whitelist()
+def create_labour_master(data):
+	"""Create a Labour Master rate (Laravel labour-masters.store parity)."""
+	if not frappe.has_permission("Labour Master", "create"):
+		frappe.throw("Not permitted to create Labour Master.", frappe.PermissionError)
+	if isinstance(data, str):
+		data = frappe.parse_json(data)
+	doc = frappe.get_doc(
+		{
+			"doctype": "Labour Master",
+			"service_name": data.get("service_name"),
+			"category": data.get("category") or "General",
+			"standard_rate": data.get("standard_rate") or 0,
+			"taxable": data.get("taxable", 1),
+			"gst_rate": data.get("gst_rate") or 18,
+			"hsn_sac_code": data.get("hsn_sac_code"),
+		}
+	).insert()
+	return {"name": doc.name}
+
+
+@frappe.whitelist()
+def create_brand_model(data):
+	"""Create a Vehicle Brand and/or Model (Laravel catalog parity)."""
+	if isinstance(data, str):
+		data = frappe.parse_json(data)
+	out = {}
+	if data.get("brand_name"):
+		if not frappe.has_permission("Vehicle Brand", "create"):
+			frappe.throw("Not permitted to create Vehicle Brand.", frappe.PermissionError)
+		brand = frappe.db.exists("Vehicle Brand", {"brand_name": data["brand_name"]})
+		if not brand:
+			brand = frappe.get_doc({"doctype": "Vehicle Brand", "brand_name": data["brand_name"]}).insert().name
+		out["brand"] = brand
+	if data.get("model_name"):
+		if not frappe.has_permission("Vehicle Model", "create"):
+			frappe.throw("Not permitted to create Vehicle Model.", frappe.PermissionError)
+		brand = out.get("brand") or data.get("vehicle_brand")
+		if not brand:
+			frappe.throw("Brand is required to create a model.")
+		out["model"] = frappe.get_doc(
+			{
+				"doctype": "Vehicle Model",
+				"vehicle_brand": brand,
+				"model_name": data["model_name"],
+				"battery_type": data.get("battery_type") or "Lithium-ion",
+			}
+		).insert().name
+	return out
+
+
+@frappe.whitelist()
+def update_vehicle(name, data):
+	"""Edit EV Vehicle fields (Laravel vehicles.update parity)."""
+	if not frappe.has_permission("EV Vehicle", "write", name):
+		frappe.throw("Not permitted to update EV Vehicle.", frappe.PermissionError)
+	if isinstance(data, str):
+		data = frappe.parse_json(data)
+	doc = frappe.get_doc("EV Vehicle", name)
+	for f in ("vehicle_model", "model", "chassis_no", "motor_no", "battery_no", "controller_no", "converter_no", "date_of_sale"):
+		if f in data:
+			doc.set(f, data[f])
+	doc.save()
+	return {"name": doc.name}

@@ -70,10 +70,13 @@ export async function CustomerDetailView(name) {
       <p class="text-sm text-gray-600">${initials} · ${escapeHtml(p.mobile_no || "")} · ${escapeHtml(p.city || "")}</p></div>
     </div>
     <div class="flex flex-wrap items-center gap-3">
+      ${button("Edit", { variant: "secondary", attrs: `data-action="edit-customer"` })}
       ${button("Statement", { variant: "secondary", attrs: `data-action="statement"` })}
+      ${button("Print Statement", { variant: "secondary", attrs: `data-action="print-statement"` })}
       ${button("Back", { variant: "ghost", href: "#/customers" })}
     </div></div>`;
   const content = `<div class="py-6"><div class="max-w-full sm:px-6 lg:px-8 space-y-6">
+    <div id="c-edit"></div>
     <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
       ${card(`<div class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Billed</div><div class="mt-1 text-lg font-semibold">${money(agg.billed)}</div>`, "!p-5")}
       ${card(`<div class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Paid</div><div class="mt-1 text-lg font-semibold text-green-600">${money(agg.paid)}</div>`, "!p-5")}
@@ -89,9 +92,11 @@ export async function CustomerDetailView(name) {
       <th class="text-left text-xs text-muted-foreground uppercase py-2">Registration</th>
       <th class="text-left text-xs text-muted-foreground uppercase py-2">Model</th>
       <th class="text-left text-xs text-muted-foreground uppercase py-2">Owner</th>
+      <th class="text-right text-xs text-muted-foreground uppercase py-2"></th>
       </tr></thead><tbody>
-      ${d.vehicles.map((v) => `<tr class="border-t"><td class="py-2 text-sm">${escapeHtml(v.registration_no || "-")}</td><td class="py-2 text-sm">${escapeHtml(v.model || "-")}</td><td class="py-2 text-sm">${v.is_primary ? "Primary" : "Co-owner"}</td></tr>`).join("") || `<tr><td colspan="3" class="py-2 text-sm text-gray-500">No vehicles.</td></tr>`}
-      </tbody></table>`)}</div>
+      ${d.vehicles.map((v) => `<tr class="border-t"><td class="py-2 text-sm">${escapeHtml(v.registration_no || "-")}</td><td class="py-2 text-sm">${escapeHtml(v.model || "-")}</td><td class="py-2 text-sm">${v.is_primary ? "Primary" : "Co-owner"}</td><td class="py-2 text-right">${v.vehicle ? `<button class="text-primary hover:underline text-sm" data-vehicle="${escapeHtml(v.vehicle)}">Edit</button>` : ""}</td></tr>`).join("") || `<tr><td colspan="4" class="py-2 text-sm text-gray-500">No vehicles.</td></tr>`}
+      </tbody></table>`)}
+      <div id="v-edit"></div>
     <div id="c-tab-job_cards" class="hidden">${card(`
       <table class="min-w-full divide-y divide-border"><thead><tr>
       <th class="text-left text-xs text-muted-foreground uppercase py-2">Job Card</th>
@@ -136,6 +141,56 @@ CustomerDetailView.mounted = async (view, m) => {
     b.className = "px-4 py-2 text-sm font-medium transition-colors duration-150 border-b-2 -mb-px border-primary text-primary";
     ["vehicles", "job_cards", "financial"].forEach((t) => {
       view.querySelector(`#c-tab-${t}`).classList.toggle("hidden", t !== b.dataset.tab);
+    });
+  }));
+  view.querySelector('[data-action="edit-customer"]').addEventListener("click", async () => {
+    const box = view.querySelector("#c-edit");
+    let p;
+    try {
+      const r = await api.customer(name);
+      p = r.profile;
+    } catch (e) { alert(e.message); return; }
+    box.innerHTML = card(`<form id="c-edit-form" class="grid grid-cols-2 gap-4">
+      <div>${fieldLabel("Customer Name")}${textInput("customer_name", p.customer_name || "")}</div>
+      <div>${fieldLabel("Mobile")}${textInput("mobile_no", p.mobile_no || "")}</div>
+      <div>${fieldLabel("Email")}${textInput("email_id", p.email_id || "", "email")}</div>
+      <div>${fieldLabel("City")}${textInput("city", p.city || "")}</div>
+      <div class="col-span-2 flex justify-end gap-2">
+        ${button("Cancel", { variant: "ghost", attrs: `type="button" data-cancel-edit=""` })}
+        ${button("Save", { variant: "primary", type: "submit" })}
+      </div></form>`);
+    box.querySelector("[data-cancel-edit]").addEventListener("click", () => { box.innerHTML = ""; });
+    box.querySelector("#c-edit-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      try {
+        await api.updateCustomer(name, Object.fromEntries(new FormData(e.target).entries()));
+        window.location.reload();
+      } catch (ex) { alert(ex.message); }
+    });
+  });
+  view.querySelector('[data-action="print-statement"]').addEventListener("click", () => {
+    window.open(`/printview?doctype=Customer&name=${encodeURIComponent(name)}&format=EV%20Customer%20Statement`, "_blank");
+  });
+  view.querySelectorAll("[data-vehicle]").forEach((b) => b.addEventListener("click", async () => {
+    const box = view.querySelector("#v-edit");
+    const vname = b.dataset.vehicle;
+    box.innerHTML = card(`<form id="v-form" class="grid grid-cols-2 gap-4">
+      <input type="hidden" name="__name" value="${escapeHtml(vname)}">
+      <div>${fieldLabel("Model")}${textInput("model", "")}</div>
+      <div>${fieldLabel("Chassis No")}${textInput("chassis_no", "")}</div>
+      <div>${fieldLabel("Motor No")}${textInput("motor_no", "")}</div>
+      <div>${fieldLabel("Battery No")}${textInput("battery_no", "")}</div>
+      <div class="col-span-2 flex justify-end">${button("Save Vehicle", { variant: "primary", type: "submit" })}</div>
+    </form>`);
+    box.querySelector("#v-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const fd = Object.fromEntries(new FormData(e.target).entries());
+      const vname2 = fd.__name;
+      delete fd.__name;
+      try {
+        await api.updateVehicle(vname2, fd);
+        window.location.reload();
+      } catch (ex) { alert(ex.message); }
     });
   }));
   view.querySelector('[data-action="statement"]').addEventListener("click", async () => {

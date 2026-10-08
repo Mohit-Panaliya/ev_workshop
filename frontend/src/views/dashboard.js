@@ -63,6 +63,11 @@ export async function DashboardView() {
           ${button(`${icon("plus", "w-4 h-4")}New Job Card`, { variant: "primary", href: "#/jobs/new", cls: "w-full" })}
         </div>`)}
       ${card(`<div class="flex items-center justify-between mb-4">
+          <h3 class="flex items-center gap-2 text-base font-semibold text-gray-900">${icon("cube", "w-5 h-5 text-primary")}Low Stock</h3>
+          <a href="#/inventory" class="inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary-700">View all ${icon("arrow-right", "w-4 h-4")}</a>
+        </div>
+        ${(d.low_stock || []).length ? `<ul class="divide-y divide-border">${d.low_stock.map((s) => `<li class="flex items-center justify-between gap-3 py-2"><span class="text-sm text-gray-900 truncate">${s.item_code}</span><span class="text-sm font-medium text-red-600">${s.actual_qty}</span></li>`).join("")}</ul>` : `<p class="text-sm text-gray-500">Stock levels OK.</p>`}`, "sm:col-span-2 lg:col-span-2")}
+      ${card(`<div class="flex items-center justify-between mb-4">
           <h3 class="flex items-center gap-2 text-base font-semibold text-gray-900">${icon("clipboard-document-list", "w-5 h-5 text-primary")}Recent Job Cards</h3>
           <a href="#/jobs" class="inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary-700">View all ${icon("arrow-right", "w-4 h-4")}</a>
         </div>
