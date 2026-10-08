@@ -683,6 +683,9 @@ def create_customer(data):
 		}
 	).insert()
 	sync_customer_contact(customer.name, data.get("mobile_no"), data.get("email"))
+	# Re-save so Customer.mobile_no/email_id fetch in from the new contact.
+	customer.reload()
+	customer.save()
 	ownership = None
 	if data.get("registration_no"):
 		vehicle = frappe.db.exists("EV Vehicle", data["registration_no"])
@@ -979,9 +982,12 @@ def update_customer(name, data):
 		if f in data:
 			doc.set(f, data[f])
 	doc.save()
-	# Mobile/email live on the Primary Contact (fetched onto Customer)
+	# Mobile/email live on the Primary Contact (fetched onto Customer).
+	# Sync first, then re-save so fetch_from pulls the values in.
 	if "mobile_no" in data or "email_id" in data:
 		sync_customer_contact(name, data.get("mobile_no"), data.get("email_id"))
+		doc.reload()
+		doc.save()
 	return {"name": doc.name}
 
 
