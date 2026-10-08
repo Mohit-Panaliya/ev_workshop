@@ -1,0 +1,27 @@
+[
+ {
+  "doctype": "Designation",
+  "name": "Technician",
+  "designation_name": "Technician"
+ },
+ {
+  "doctype": "Designation",
+  "name": "Supervisor",
+  "designation_name": "Supervisor"
+ },
+ {
+  "doctype": "Designation",
+  "name": "Helper",
+  "designation_name": "Helper"
+ },
+ {
+  "doctype": "Designation",
+  "name": "Front Desk",
+  "designation_name": "Front Desk"
+ },
+ {
+  "doctype": "Designation",
+  "name": "Admin",
+  "designation_name": "Admin"
+ }
+]

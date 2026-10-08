@@ -52,6 +52,7 @@ doc_events = {}
 fixtures = [
 	{"dt": "Custom Field", "filters": [["module", "=", "EV Workshop"]]},
 	{"dt": "Print Format", "filters": [["module", "=", "EV Workshop"]]},
+	{"dt": "Designation", "filters": [["name", "in", ["Technician", "Supervisor", "Helper", "Front Desk", "Admin"]]]},
 ]
 
 # ============================================================================
