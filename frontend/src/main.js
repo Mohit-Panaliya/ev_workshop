@@ -1,11 +1,10 @@
 // Hash router + shell state (mirrors layouts/app.blade.php Alpine sidebar()).
 import "./app.css";
+import { registerSW } from "virtual:pwa-register";
 import { loggedUser, logout } from "./api.js";
 
-// Plain web UI (not a PWA): drop any service worker left from earlier builds.
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.getRegistrations().then((rs) => rs.forEach((r) => r.unregister()));
-}
+// PWA service worker: shell + read APIs stay usable offline after first load.
+registerSW({ immediate: true });
 import { shell } from "./layout.js";
 import { LoginView } from "./views/login.js";
 import { DashboardView } from "./views/dashboard.js";

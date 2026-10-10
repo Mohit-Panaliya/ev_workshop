@@ -8,7 +8,7 @@ import { combobox } from "../components.js";
 const PAY_BADGES = { paid: "green", partially_paid: "amber", unpaid: "red", default: "red" };
 
 export async function CountersView() {
-  const header = `<div class="flex justify-between items-center">
+  const header = `<div class="flex flex-wrap gap-2 justify-between items-center">
     <h2 class="flex items-center gap-2 font-semibold text-xl text-gray-800 leading-tight">${icon("receipt-percent", "w-6 h-6 text-primary")}Counter Invoices</h2>
     <div class="flex items-center gap-2">${exportDropdown("counter_invoices")}${button(`${icon("plus", "w-4 h-4")}New Counter Invoice`, { variant: "primary", href: "#/counters/new" })}</div>
   </div>`;
@@ -134,7 +134,7 @@ async function CounterCreateView() {
   const header = `<h2 class="flex items-center gap-2 font-semibold text-xl text-gray-800 leading-tight">${icon("receipt-percent", "w-6 h-6 text-primary")}New Counter Invoice</h2>`;
   const content = `<div class="py-6"><div class="max-w-5xl mx-auto sm:px-6 lg:px-8 space-y-6">${card(`
     <form id="ci-form" class="space-y-4">
-      <div class="grid grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>${fieldLabel("Invoice Date", "cid")}${textInput("invoice_date", new Date().toISOString().slice(0, 10), "date")}</div>
         <div>${fieldLabel("Payment Mode", "pm")}<select name="payment_mode" id="pm" class="block w-full rounded-md border border-gray-300 bg-white h-10 px-3 py-2 text-sm"><option>Cash</option><option>UPI</option><option>Card</option><option>Bank Transfer</option><option>Cheque</option></select></div>
       </div>
@@ -143,13 +143,13 @@ async function CounterCreateView() {
         <label class="inline-flex items-center gap-2 text-sm"><input type="radio" name="customer_type" value="walkin" class="text-primary"> Walk-in</label>
       </div>
       <div id="ci-existing">${fieldLabel("Customer", "ccb")}<div id="ccb-slot"></div></div>
-      <div id="ci-walkin" class="hidden grid grid-cols-2 gap-4">
+      <div id="ci-walkin" class="hidden grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>${fieldLabel("Walk-in Name", "wn")}${textInput("walkin_name")}</div>
         <div>${fieldLabel("Walk-in Mobile", "wm")}${textInput("walkin_mobile")}</div>
       </div>
       <div id="ci-lines" class="space-y-2"></div>
       ${button(`${icon("plus", "w-4 h-4")}Add Item`, { variant: "secondary", attrs: `data-add-line="" type="button"` })}
-      <div class="grid grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>${fieldLabel("Discount Type", "dt")}<select name="discount_type" id="dt" class="block w-full rounded-md border border-gray-300 bg-white h-10 px-3 py-2 text-sm"><option value="percentage">Percentage</option><option value="amount">Amount</option></select></div>
         <div>${fieldLabel("Discount Value", "dv")}${textInput("discount_value", "0", "number")}</div>
       </div>
@@ -201,7 +201,7 @@ function bindCounterCreate(view) {
   function addLine() {
     const div = document.createElement("div");
     div.setAttribute("data-crow", "");
-    div.className = "grid grid-cols-5 gap-2 items-end border border-border rounded-md p-2";
+    div.className = "grid grid-cols-2 md:grid-cols-5 gap-2 items-end border border-border rounded-md p-2";
     div.innerHTML = `<div class="col-span-2">${fieldLabel("Part")}<div data-cb></div></div>
       <div>${fieldLabel("Qty")}${textInput("c_qty", "1", "number")}</div>
       <div>${fieldLabel("MRP")}${textInput("c_mrp", "0", "number")}</div>
@@ -271,7 +271,7 @@ export async function CounterEditView(name) {
   const header = `<h2 class="flex items-center gap-2 font-semibold text-xl text-gray-800 leading-tight">${icon("receipt-percent", "w-6 h-6 text-primary")}Edit Counter Invoice ${escapeHtml(inv.name)}</h2>`;
   const content = `<div class="py-6"><div class="max-w-5xl mx-auto sm:px-6 lg:px-8 space-y-6">${card(`
     <form id="ci-edit" class="space-y-4">
-      <div class="grid grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>${fieldLabel("Invoice Date", "cid")}${textInput("invoice_date", (inv.invoice_date || "").slice(0, 10), "date")}</div>
         <div>${fieldLabel("Walk-in Name", "wn")}${textInput("walkin_name", inv.walkin_name || "")}</div>
         <div>${fieldLabel("Walk-in Mobile", "wm")}${textInput("walkin_mobile", inv.walkin_mobile || "")}</div>
@@ -300,7 +300,7 @@ CounterEditView.mounted = async (view, m) => {
   function addLine(row = {}) {
     const div = document.createElement("div");
     div.setAttribute("data-crow", "");
-    div.className = "grid grid-cols-5 gap-2 items-end border border-border rounded-md p-2";
+    div.className = "grid grid-cols-2 md:grid-cols-5 gap-2 items-end border border-border rounded-md p-2";
     div.innerHTML = `<div class="col-span-2">${fieldLabel("Item code")}${textInput("c_item", row.item_master || "")}</div>
       <div>${fieldLabel("Qty")}${textInput("c_qty", row.qty || 1, "number")}</div>
       <div>${fieldLabel("MRP")}${textInput("c_mrp", row.mrp || 0, "number")}</div>

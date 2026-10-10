@@ -55,7 +55,7 @@ VehicleCreateView.mounted = async (view) => {
   const params = new URLSearchParams(window.location.hash.split("?")[1] || "");
   const presetCustomer = params.get("customer_id") || "";
   view.querySelector("#vform").innerHTML = `
-    <form id="vehicle-form" class="grid grid-cols-2 gap-4">
+    <form id="vehicle-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div class="col-span-2">${fieldLabel("Customer", "vcust")}<div id="vcust-slot"></div></div>
       ${brandModelFields(brands)}
       <div class="col-span-2 flex justify-end gap-2">
@@ -97,7 +97,7 @@ VehicleEditView.mounted = async (view, m) => {
     return;
   }
   view.querySelector("#vform").innerHTML = `
-    <form id="vehicle-form" class="grid grid-cols-2 gap-4">
+    <form id="vehicle-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div class="col-span-2"><p class="text-sm text-gray-600">Owner cannot be changed (preserves history).</p></div>
       ${brandModelFields(brands)}
       <div class="col-span-2 flex justify-end gap-2">

@@ -6,7 +6,7 @@ import { bindBulkDelete, importButton, bindImport, exportDropdown, bindExportDro
 import { openModal, closeModal } from "../components.js";
 
 export async function CustomersView() {
-  const header = `<div class="flex justify-between items-center">
+  const header = `<div class="flex flex-wrap gap-2 justify-between items-center">
     <h2 class="flex items-center gap-2 font-semibold text-xl text-gray-800 leading-tight">${icon("users", "w-6 h-6 text-primary")}Customers</h2>
     <div class="flex items-center gap-2">
       ${button(`${icon("arrow-up-tray", "w-4 h-4")}Export`, { variant: "secondary", attrs: `data-action="export"` })}
@@ -193,7 +193,7 @@ CustomerDetailView.mounted = async (view, m) => {
       const r = await api.customer(name);
       p = r.profile;
     } catch (e) { alert(e.message); return; }
-    box.innerHTML = card(`<form id="c-edit-form" class="grid grid-cols-2 gap-4">
+    box.innerHTML = card(`<form id="c-edit-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>${fieldLabel("Customer Name")}${textInput("customer_name", p.customer_name || "")}</div>
       <div>${fieldLabel("Mobile")}${textInput("mobile_no", p.mobile_no || "")}</div>
       <div>${fieldLabel("Email")}${textInput("email_id", p.email_id || "", "email")}</div>
@@ -227,7 +227,7 @@ CustomerDetailView.mounted = async (view, m) => {
       <form id="recv-form" class="space-y-4">
         <div>${fieldLabel("Document")}<select name="sales_invoice" class="block w-full rounded-md border border-gray-300 bg-white h-10 px-3 py-2 text-sm">
           ${docs.map((x) => `<option value="${escapeHtml(x.name)}" data-due="${x.outstanding}">${escapeHtml(x.label)} — due ${money(x.outstanding)}</option>`).join("")}</select></div>
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>${fieldLabel("Amount")}${textInput("amount", docs[0].outstanding, "number")}</div>
           <div>${fieldLabel("Mode")}<select name="mode_of_payment" class="block w-full rounded-md border border-gray-300 bg-white h-10 px-3 py-2 text-sm"><option>Cash</option><option>UPI</option><option>Card</option><option>Bank Transfer</option><option>Cheque</option></select></div>
           <div>${fieldLabel("Date")}${textInput("payment_date", new Date().toISOString().slice(0, 10), "date")}</div>
@@ -253,7 +253,7 @@ CustomerDetailView.mounted = async (view, m) => {
   view.querySelectorAll("[data-vehicle]").forEach((b) => b.addEventListener("click", async () => {
     const box = view.querySelector("#v-edit");
     const vname = b.dataset.vehicle;
-    box.innerHTML = card(`<form id="v-form" class="grid grid-cols-2 gap-4">
+    box.innerHTML = card(`<form id="v-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <input type="hidden" name="__name" value="${escapeHtml(vname)}">
       <div>${fieldLabel("Model")}${textInput("model", "")}</div>
       <div>${fieldLabel("Chassis No")}${textInput("chassis_no", "")}</div>
@@ -289,7 +289,7 @@ CustomerDetailView.mounted = async (view, m) => {
 async function CustomerCreateView() {
   const header = `<h2 class="flex items-center gap-2 font-semibold text-xl text-gray-800 leading-tight">${icon("users", "w-6 h-6 text-primary")}Add Customer</h2>`;
   const content = `<div class="py-6"><div class="max-w-3xl mx-auto sm:px-6 lg:px-8">${card(`
-    <form id="customer-form" class="grid grid-cols-2 gap-4">
+    <form id="customer-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>${fieldLabel("Customer Name")}${textInput("customer_name", "", "text", "required")}</div>
       <div>${fieldLabel("Mobile")}${textInput("mobile_no")}</div>
       <div>${fieldLabel("Email")}${textInput("email", "", "email")}</div>

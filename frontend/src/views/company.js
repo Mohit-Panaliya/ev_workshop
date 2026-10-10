@@ -15,7 +15,7 @@ export async function CompanyView() {
   }
   const content = `<div class="py-6"><div class="max-w-3xl mx-auto sm:px-6 lg:px-8 space-y-4">
     <div id="co-flash"></div>
-    ${card(`<form id="co-form" class="grid grid-cols-2 gap-4">
+    ${card(`<form id="co-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <input type="hidden" name="name" value="${escapeHtml(c.name)}">
       ${FIELDS.map((f) => `<div>${fieldLabel(f.replace(/_/g, " ").replace(/\b\w/g, (x) => x.toUpperCase()))}${textInput(f, c[f] || "", f === "email" ? "email" : "text", f === "company_name" ? "readonly" : "")}</div>`).join("")}
       <div>${fieldLabel("Logo (png/jpg, max 2MB)")}<input type="file" id="co-logo" accept=".png,.jpg,.jpeg,.svg" class="block w-full text-sm">

@@ -46,7 +46,7 @@ EmployeesView.mounted = async (view) => {
   await load();
   const add = document.createElement("div");
   add.innerHTML = `<div class="mt-4">${card(`<details><summary class="cursor-pointer font-semibold text-gray-900">Add Employee</summary>
-    <form id="emp-form" class="grid grid-cols-2 gap-3 mt-3">
+    <form id="emp-form" class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
       <div>${fieldLabel("First Name")}${textInput("first_name", "", "text", "required")}</div>
       <div>${fieldLabel("Last Name")}${textInput("last_name")}</div>
       <div>${fieldLabel("Mobile")}${textInput("mobile_no")}</div>
@@ -67,7 +67,7 @@ EmployeesView.mounted = async (view) => {
 
 function openEmployeeEdit(name, reload) {
   const wrap = openModal("Edit Employee", `
-    <form id="emp-edit" class="grid grid-cols-2 gap-3">
+    <form id="emp-edit" class="grid grid-cols-1 md:grid-cols-2 gap-3">
       <div>${fieldLabel("Mobile")}${textInput("cell_number")}</div>
       <div>${fieldLabel("Department")}${textInput("department")}</div>
       <div>${fieldLabel("Role")}<select name="designation" class="block w-full rounded-md border border-gray-300 bg-white h-10 px-3 py-2 text-sm"><option>Technician</option><option>Supervisor</option><option>Helper</option><option>Front Desk</option><option>Admin</option></select></div>

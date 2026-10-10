@@ -27,7 +27,7 @@ export async function JobsView() {
   try {
     techs = (await api.jobOptions()).technicians || [];
   } catch { /* filter still renders */ }
-  const header = `<div class="flex justify-between items-center">
+  const header = `<div class="flex flex-wrap gap-2 justify-between items-center">
     <h2 class="flex items-center gap-2 font-semibold text-xl text-gray-800 leading-tight">${icon("wrench-screwdriver", "w-6 h-6 text-primary")}Job Cards</h2>
     <div class="flex items-center gap-2">
       <button type="button" data-action="import-jobs" class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md h-10 px-4 py-2 text-sm font-medium shadow-sm transition-colors border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 hover:text-gray-900 shadow-sm">${icon("arrow-up-tray", "w-4 h-4")}Import CSV</button>
@@ -264,7 +264,7 @@ export async function JobDetailView(name) {
     <div id="job-flash"></div>
     ${card(`<details>
       <summary class="cursor-pointer font-semibold text-gray-900">Add Parts / Labour</summary>
-      <form id="add-form" class="grid grid-cols-4 gap-2 mt-3 items-end">
+      <form id="add-form" class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-3 items-end">
         <div>${fieldLabel("Item code (blank for labour)")}${textInput("item_no")}</div>
         <div>${fieldLabel("Labour (blank for part)")}${textInput("labour_master")}</div>
         <div>${fieldLabel("Qty")}${textInput("qty", "1", "number")}</div>
@@ -273,7 +273,7 @@ export async function JobDetailView(name) {
       </form>
       <p class="text-xs text-gray-500 mt-1">Use the Item Master code (e.g. 002) or Labour Master name (e.g. LAB-0001).</p>
     </details>`)}
-    ${card(`<div class="grid grid-cols-3 gap-6">
+    ${card(`<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
       <div><h3 class="font-semibold text-gray-900 mb-3">Job Details</h3><dl class="space-y-2 text-sm">
         <div><dt class="inline font-medium">No: </dt><dd class="inline">${escapeHtml(j.name)}</dd></div>
         <div><dt class="inline font-medium">Date: </dt><dd class="inline">${fmtDate(j.date)}</dd></div>
@@ -319,7 +319,7 @@ export async function JobDetailView(name) {
         <th class="px-4 py-2 text-right text-xs font-medium text-muted-foreground uppercase">Due</th>
       </tr></thead><tbody>${payRows}</tbody></table>` : `<p class="text-sm text-gray-500">No invoices yet.</p>`}
       ${invoices.length && due > 0 ? `<div class="border-t pt-6 mt-4"><h4 class="font-medium text-gray-900 mb-3">Record Payment</h4>
-        <form id="pay-form" class="grid grid-cols-4 gap-4">
+        <form id="pay-form" class="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div>${fieldLabel("Amount")}${textInput("amount", due.toFixed(2), "number")}</div>
           <div>${fieldLabel("Mode")}<select name="mode_of_payment" class="block w-full rounded-md border border-gray-300 bg-white h-10 px-3 py-2 text-sm transition-colors focus:ring-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 shadow-sm"><option>Cash</option><option>UPI</option><option>Card</option><option>Bank Transfer</option><option>Cheque</option></select></div>
           <div>${fieldLabel("Date")}${textInput("payment_date", new Date().toISOString().slice(0, 10), "date")}</div>
@@ -343,7 +343,7 @@ JobDetailView.mounted = async (view, m) => {
   actions.innerHTML = button("Edit Job", { variant: "secondary", attrs: `data-edit-job=""` }) + actions.innerHTML;
   actions.querySelector("[data-edit-job]").addEventListener("click", async () => {
     const f = document.createElement("div");
-    f.innerHTML = card(`<form id="job-edit" class="grid grid-cols-2 gap-4">
+    f.innerHTML = card(`<form id="job-edit" class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>${fieldLabel("Service Type")}<select name="service_type" class="block w-full rounded-md border border-gray-300 bg-white h-10 px-3 py-2 text-sm transition-colors focus:ring-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 shadow-sm"><option>Free</option><option>Paid</option></select></div>
       <div>${fieldLabel("KM Reading")}${textInput("km_reading", data.job.km_reading || 0, "number")}</div>
       <div>${fieldLabel("Supervisor (Employee ID)")}${textInput("supervisor", data.job.supervisor || "")}</div>
@@ -440,7 +440,7 @@ async function JobCreateView(preset = {}) {
   const today = new Date().toISOString().slice(0, 10);
   const content = `<div class="py-6"><div class="max-w-5xl mx-auto sm:px-6 lg:px-8 space-y-6">
     <div id="job-flash"></div>
-    ${card(`<form id="job-form" class="grid grid-cols-2 gap-4">
+    ${card(`<form id="job-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>${fieldLabel("Job Date", "jd")}${textInput("date", today, "date")}</div>
       <div>${fieldLabel("KM Reading", "km")}${textInput("km_reading", "0", "number")}</div>
       <div class="col-span-2">${fieldLabel("Customer", "cc")}<div id="jc-cust"></div></div>
@@ -533,7 +533,7 @@ export async function JobEditView(name) {
   const j = d.job;
   const header = `<h2 class="flex items-center gap-2 font-semibold text-xl text-gray-800 leading-tight">${icon("wrench-screwdriver", "w-6 h-6 text-primary")}Edit Job Card ${escapeHtml(j.name)}</h2>`;
   const content = `<div class="py-6"><div class="max-w-5xl mx-auto sm:px-6 lg:px-8">${card(`
-    <form id="job-edit-form" class="grid grid-cols-2 gap-4">
+    <form id="job-edit-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>${fieldLabel("Job Date", "job_date")}${textInput("job_date", (j.date || "").slice(0, 10), "date")}</div>
       <div>${fieldLabel("Odometer (km)", "km")}${textInput("km_reading", j.km_reading || 0, "number")}</div>
       <div>${fieldLabel("Status", "status")}<select name="status" id="status" class="${"block w-full rounded-md border border-gray-300 bg-white h-10 px-3 py-2 text-sm"}">${["Admitted", "Inspection", "Quoted", "Approved", "Repairing", "Ready", "Completed", "Cancelled"].map((s) => `<option${s === j.status ? " selected" : ""}>${s}</option>`).join("")}</select></div>
@@ -577,7 +577,7 @@ export async function JobAssignView(name) {
   const content = `<div class="py-6"><div class="max-w-5xl mx-auto sm:px-6 lg:px-8 space-y-6">${card(`
     <p class="text-sm text-gray-600 mb-4"><b>${escapeHtml(j.customer_name || "")}</b> · ${escapeHtml(j.vehicle || "")} · ${fmtDate(j.date)} · ${escapeHtml(j.status)}</p>
     <form id="assign-form" class="space-y-4">
-      <div class="grid grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>${fieldLabel("Technician", "tech")}<select name="mechanic" id="tech" class="block w-full rounded-md border border-gray-300 bg-white h-10 px-3 py-2 text-sm"><option value="">—</option>${opts.technicians.map((t) => `<option value="${t.name}"${j.mechanic === t.name ? " selected" : ""}>${escapeHtml(t.employee_name)}</option>`).join("")}</select></div>
         <div>${fieldLabel("Supervisor", "sup")}<select name="supervisor" id="sup" class="block w-full rounded-md border border-gray-300 bg-white h-10 px-3 py-2 text-sm"><option value="">—</option>${opts.technicians.map((t) => `<option value="${t.name}"${j.supervisor === t.name ? " selected" : ""}>${escapeHtml(t.employee_name)}</option>`).join("")}</select></div>
       </div>
@@ -587,7 +587,7 @@ export async function JobAssignView(name) {
       <h4 class="font-medium text-gray-900">Labour</h4>
       <div id="as-labours" class="space-y-2"></div>
       ${button("Add Labour", { variant: "secondary", attrs: `type="button" data-add-labour=""` })}
-      <div class="grid grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>${fieldLabel("Discount %", "dp")}${textInput("discount_percent", j.discount_percent || 0, "number")}</div>
         <div>${fieldLabel("GST Applicable", "gst")}<select name="gst_applicable" id="gst" class="block w-full rounded-md border border-gray-300 bg-white h-10 px-3 py-2 text-sm"><option value="1">Yes</option><option value="0">No</option></select></div>
       </div>
@@ -642,7 +642,7 @@ JobAssignView.mounted = async (view, m) => {
   function partRow() {
     const div = document.createElement("div");
     div.setAttribute("data-prow", "");
-    div.className = "grid grid-cols-6 gap-2 items-end border border-border rounded-md p-2";
+    div.className = "grid grid-cols-2 md:grid-cols-6 gap-2 items-end border border-border rounded-md p-2";
     div.innerHTML = `
       <div class="col-span-2">${fieldLabel("Part code")}${textInput("p_code", "", "text", "list='as-parts-list'")}</div>
       <div>${fieldLabel("Qty")}${textInput("p_qty", "1", "number")}</div>
@@ -669,7 +669,7 @@ JobAssignView.mounted = async (view, m) => {
   function labourRow() {
     const div = document.createElement("div");
     div.setAttribute("data-lrow", "");
-    div.className = "grid grid-cols-5 gap-2 items-end border border-border rounded-md p-2";
+    div.className = "grid grid-cols-2 md:grid-cols-5 gap-2 items-end border border-border rounded-md p-2";
     div.innerHTML = `
       <div class="col-span-2">${fieldLabel("Service")}<select name="l_master" class="block w-full rounded-md border border-gray-300 bg-white h-10 px-3 py-2 text-sm"><option value="">Select...</option></select></div>
       <div>${fieldLabel("Qty")}${textInput("l_qty", "1", "number")}</div>

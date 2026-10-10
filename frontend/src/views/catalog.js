@@ -5,7 +5,7 @@ import { badge, button, card, dataTable, th, td, fieldLabel, textInput, escapeHt
 import { openModal, closeModal } from "../components.js";
 
 export async function CatalogView() {
-  const header = `<div class="flex justify-between items-center">
+  const header = `<div class="flex flex-wrap gap-2 justify-between items-center">
     <h2 class="flex items-center gap-2 font-semibold text-xl text-gray-800 leading-tight">${icon("book-open", "w-6 h-6 text-primary")}Vehicle Catalog</h2>
   </div>`;
   const content = `<div class="py-6"><div class="max-w-full sm:px-6 lg:px-8 space-y-4"><div id="cat-table"></div>
@@ -45,7 +45,7 @@ CatalogView.mounted = async (view) => {
   }));
   table.querySelectorAll("[data-edit-model]").forEach((btn) => btn.addEventListener("click", () => {
     const wrap = openModal("Edit Model", `
-      <form id="model-edit" class="grid grid-cols-2 gap-3">
+      <form id="model-edit" class="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>${fieldLabel("Model Name")}${textInput("model_name", "", "text", "required")}</div>
         <div>${fieldLabel("Battery Type")}<select name="battery_type" class="block w-full rounded-md border border-gray-300 bg-white h-10 px-3 py-2 text-sm"><option>Lithium-ion</option><option>Lead-acid</option><option>Other</option></select></div>
         <div class="col-span-2 flex justify-end gap-2">
@@ -69,7 +69,7 @@ CatalogView.mounted = async (view) => {
   }));
   const add = document.createElement("div");
   add.innerHTML = `<div class="mt-4">${card(`<details><summary class="cursor-pointer font-semibold text-gray-900">Add Brand / Model</summary>
-    <form id="cat-form" class="grid grid-cols-2 gap-3 mt-3">
+    <form id="cat-form" class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
       <div>${fieldLabel("Brand Name")}${textInput("brand_name", "", "text", "required")}</div>
       <div>${fieldLabel("Model Name (optional)")}${textInput("model_name")}</div>
       <div>${fieldLabel("Battery Type")}<select name="battery_type" class="block w-full rounded-md border border-gray-300 bg-white h-10 px-3 py-2 text-sm transition-colors focus:ring-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 shadow-sm"><option>Lithium-ion</option><option>Lead-acid</option><option>Other</option></select></div>

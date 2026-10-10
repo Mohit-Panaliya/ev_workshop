@@ -54,7 +54,7 @@ PaymentsView.mounted = async (view) => {
   bindSort(table, sortState, load);
   table.querySelectorAll("[data-edit-p]").forEach((b) => b.addEventListener("click", () => {
     const wrap = openModal("Edit Draft Payment", `
-      <form id="pe-edit" class="grid grid-cols-2 gap-3">
+      <form id="pe-edit" class="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>${fieldLabel("Amount")}${textInput("paid_amount", "", "number")}</div>
         <div>${fieldLabel("Mode")}<select name="mode_of_payment" class="block w-full rounded-md border border-gray-300 bg-white h-10 px-3 py-2 text-sm"><option>Cash</option><option>UPI</option><option>Card</option><option>Bank Transfer</option><option>Cheque</option></select></div>
         <div>${fieldLabel("Date")}${textInput("posting_date", new Date().toISOString().slice(0, 10), "date")}</div>
@@ -89,7 +89,7 @@ PaymentsView.mounted = async (view) => {
   const cell = (label, val, bg) => `<div class="text-center p-4 ${bg} rounded-lg"><div class="text-gray-600 mb-1 text-sm">${label}</div><div class="text-xl font-bold">${money(val)}</div></div>`;
   summary.innerHTML = `<div class="mt-6 bg-white rounded-xl border border-border shadow-sm p-6">
     <h3 class="font-semibold text-gray-900 mb-4">Current Page Summary</h3>
-    <div class="grid grid-cols-5 gap-4 text-sm">
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
       ${cell("Total", total, "bg-muted")}
       ${cell("Cash", byMode("cash"), "bg-green-50")}
       ${cell("UPI", byMode("upi"), "bg-primary-50")}

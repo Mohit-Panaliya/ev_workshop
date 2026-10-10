@@ -61,7 +61,7 @@ InventoryView.mounted = async (view) => {
   bindImport(view, load);
   const labourBtn = document.createElement("div");
   labourBtn.innerHTML = `<div class="mt-4">${card(`<details><summary class="cursor-pointer font-semibold text-gray-900">Add Labour Rate</summary>
-    <form id="labour-form" class="grid grid-cols-2 gap-3 mt-3">
+    <form id="labour-form" class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
       <div>${fieldLabel("Service Name")}${textInput("service_name", "", "text", "required")}</div>
       <div>${fieldLabel("Category")}<select name="category" class="block w-full rounded-md border border-gray-300 bg-white h-10 px-3 py-2 text-sm transition-colors focus:ring-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 shadow-sm"><option>Battery</option><option>Motor</option><option>Brakes</option><option>Electrical</option><option>General</option><option>Other</option></select></div>
       <div>${fieldLabel("Standard Rate")}${textInput("standard_rate", "0", "number")}</div>
@@ -89,7 +89,7 @@ InventoryView.mounted = async (view) => {
   });
   const partBtn = document.createElement("div");
   partBtn.innerHTML = `<div class="mt-4">${card(`<details><summary class="cursor-pointer font-semibold text-gray-900">Add Spare Part</summary>
-    <form id="part-form" class="grid grid-cols-2 gap-3 mt-3">
+    <form id="part-form" class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
       <div>${fieldLabel("Part Name")}${textInput("item_name", "", "text", "required")}</div>
       <div>${fieldLabel("Category")}<select name="category" class="block w-full rounded-md border border-gray-300 bg-white h-10 px-3 py-2 text-sm" required>
         <option>Spare Part</option><option>Service</option><option>Consumable</option></select></div>
