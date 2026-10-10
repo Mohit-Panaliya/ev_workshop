@@ -2,6 +2,7 @@
 import { api } from "../api.js";
 import { icon } from "../icons.js";
 import { badge, button, card, dataTable, th, td, fieldLabel, textInput, escapeHtml } from "../ui.js";
+import { openModal, closeModal } from "../components.js";
 
 export async function CatalogView() {
   const header = `<div class="flex justify-between items-center">
@@ -30,9 +31,38 @@ CatalogView.mounted = async (view) => {
       <div class="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Models</div>
       ${b.models.map((m) => `<div class="flex items-center gap-3 py-2 border-b border-border last:border-0">
         <span class="text-sm font-medium">${escapeHtml(m.model_name)}</span>${badge("gray", escapeHtml(m.battery_type || "—"))}
+        <span class="ml-auto flex items-center gap-2">
+          <button data-edit-model="${m.name}" data-brand="${b.name}" class="text-primary hover:text-primary-700">${icon("pencil-square", "w-4 h-4")}</button>
+        </span>
       </div>`).join("") || `<p class="text-sm text-gray-500">No models.</p>`}
+      <button data-edit-brand="${b.name}" data-brandname="${escapeHtml(b.brand_name)}" class="text-xs text-primary hover:underline mt-1">Rename brand</button>
     </td></tr>`).join("");
   table.innerHTML = dataTable(`${th("Brand")}${th("Models")}${th("")}`, rows, "book-open", "No brands found.");
+  table.querySelectorAll("[data-edit-brand]").forEach((btn) => btn.addEventListener("click", () => {
+    const name = prompt("Brand name:", btn.dataset.brandname);
+    if (!name || name === btn.dataset.brandname) return;
+    api.updateBrandModel("brand", btn.dataset.editBrand, { brand_name: name }).then(() => window.location.reload()).catch((e) => alert(e.message));
+  }));
+  table.querySelectorAll("[data-edit-model]").forEach((btn) => btn.addEventListener("click", () => {
+    const wrap = openModal("Edit Model", `
+      <form id="model-edit" class="grid grid-cols-2 gap-3">
+        <div>${fieldLabel("Model Name")}${textInput("model_name", "", "text", "required")}</div>
+        <div>${fieldLabel("Battery Type")}<select name="battery_type" class="block w-full rounded-md border border-gray-300 bg-white h-10 px-3 py-2 text-sm"><option>Lithium-ion</option><option>Lead-acid</option><option>Other</option></select></div>
+        <div class="col-span-2 flex justify-end gap-2">
+          <button type="button" data-mclose class="inline-flex items-center h-10 px-4 text-sm hover:bg-accent rounded-md">Cancel</button>
+          ${button("Update", { variant: "primary", type: "submit" })}
+        </div>
+      </form>`);
+    wrap.querySelector("[data-mclose]").addEventListener("click", closeModal);
+    wrap.querySelector("#model-edit").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      try {
+        await api.updateBrandModel("model", btn.dataset.editModel, Object.fromEntries(new FormData(e.target).entries()));
+        closeModal();
+        window.location.reload();
+      } catch (ex) { alert(ex.message); }
+    });
+  }));
   table.querySelectorAll("[data-expand]").forEach((btn) => btn.addEventListener("click", () => {
     const row = table.querySelector(`[data-models="${btn.dataset.expand}"]`);
     row.classList.toggle("hidden");

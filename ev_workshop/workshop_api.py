@@ -110,7 +110,7 @@ def get_dashboard():
 @frappe.whitelist()
 def get_jobs(status=None, search=None, limit=20, offset=0, from_date=None, to_date=None,
              technician=None, service_type=None, payment_status=None, page=1, per_page=None,
-             exclude_delivered=False):
+             exclude_delivered=False, sort="date", direction="desc"):
 	"""Paginated job list with payment summary (Laravel job-cards index)."""
 	_require_read()
 	try:
@@ -150,7 +150,7 @@ def get_jobs(status=None, search=None, limit=20, offset=0, from_date=None, to_da
 		"Job Master",
 		fields=[*JOB_LIST_FIELDS, "vehicle_ownership"],
 		filters=filters or {},
-		order_by="date desc, creation desc",
+		order_by=f"{ {'name': 'name', 'date': 'date', 'status': 'status', 'grand_total': 'grand_total'}.get(sort, 'date')} {'asc' if direction == 'asc' else 'desc'}, creation desc",
 		limit_page_length=per_page,
 		limit_start=offset,
 	)
@@ -456,6 +456,12 @@ def export_csv(entity, search=None, status=None, technician=None, service_type=N
 			filters["date"] = [">=", from_date]
 		elif to_date:
 			filters["date"] = ["<=", to_date]
+	elif entity == "customers" and search:
+		safe = str(search).replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+		filters["customer_name"] = ["like", f"%{safe}%"]
+	elif entity == "counter_invoices" and search:
+		safe = str(search).replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+		filters["walkin_name"] = ["like", f"%{safe}%"]
 
 	rows = frappe.get_all(doctype, fields=fields, filters=filters, limit_page_length=5000, order_by="modified desc")
 	if search and entity == "jobs":
@@ -476,8 +482,8 @@ def export_csv(entity, search=None, status=None, technician=None, service_type=N
 # ============================================================================
 
 @frappe.whitelist()
-def get_customers(search=None, limit=20):
-	"""Searchable customer combobox (Laravel customers/search parity)."""
+def get_customers(search=None, limit=20, outstanding=None, sort="customer_name", direction="asc"):
+	"""Customer list with outstanding + visits (Laravel customers.index)."""
 	_require_read()
 	filters = {}
 	if search:
@@ -487,17 +493,35 @@ def get_customers(search=None, limit=20):
 		limit = min(max(int(limit or 20), 1), 100)
 	except (TypeError, ValueError):
 		limit = 20
-	return frappe.get_list(
+	allowed_sort = {"customer_name": "customer_name", "outstanding": "customer_name", "visits": "customer_name"}
+	order_by = allowed_sort.get(sort, "customer_name")
+	if direction not in ("asc", "desc"):
+		direction = "asc"
+	rows = frappe.get_list(
 		"Customer",
 		fields=["name", "customer_name", "mobile_no", "email_id", "customer_type"],
 		filters=filters,
-		order_by="customer_name",
+		order_by=f"{order_by} {direction}",
 		limit_page_length=limit,
 	)
+	for r in rows:
+		agg = frappe.db.sql(
+			"""select coalesce(sum(grand_total), 0), coalesce(sum(outstanding_amount), 0)
+			   from `tabSales Invoice` where docstatus = 1 and customer = %s""",
+			r.name,
+		)
+		billed, due = (agg[0] if agg else (0, 0))
+		r["outstanding"] = max(flt(due), 0)
+		r["visits"] = frappe.db.count("Sales Invoice", {"customer": r.name, "docstatus": 1})
+	if outstanding == "has_outstanding":
+		rows = [r for r in rows if r["outstanding"] > 0]
+	elif outstanding == "no_outstanding":
+		rows = [r for r in rows if r["outstanding"] <= 0]
+	return rows
 
 
 @frappe.whitelist()
-def get_counter_invoices(status=None, search=None, limit=20, offset=0):
+def get_counter_invoices(status=None, search=None, limit=20, offset=0, sort="invoice_date", direction="desc"):
 	"""Counter invoice list (Laravel counter-invoices index parity)."""
 	if not frappe.has_permission("Counter Invoice", "read"):
 		frappe.throw("Not permitted to view Counter Invoice.", frappe.PermissionError)
@@ -509,11 +533,15 @@ def get_counter_invoices(status=None, search=None, limit=20, offset=0):
 		offset = max(int(offset or 0), 0)
 	except (TypeError, ValueError):
 		limit, offset = 20, 0
+	allowed_sort = {"invoice_date": "invoice_date", "invoice_no": "name", "grand_total": "grand_total"}
+	order_by = allowed_sort.get(sort, "invoice_date")
+	if direction not in ("asc", "desc"):
+		direction = "desc"
 	rows = frappe.get_list(
 		"Counter Invoice",
 		fields=["name", "invoice_date", "customer", "walkin_name", "grand_total", "sales_invoice", "docstatus"],
 		filters=filters,
-		order_by="invoice_date desc",
+		order_by=f"{order_by} {direction}",
 		limit_page_length=limit,
 		limit_start=offset,
 	)
@@ -563,7 +591,7 @@ def get_catalog():
 
 
 @frappe.whitelist()
-def get_payments(limit=20, offset=0):
+def get_payments(limit=20, offset=0, sort="posting_date", direction="desc"):
 	"""Recent payments with mode split (Laravel payments index parity)."""
 	if not frappe.has_permission("Payment Entry", "read"):
 		frappe.throw("Not permitted to view Payment Entry.", frappe.PermissionError)
@@ -572,14 +600,26 @@ def get_payments(limit=20, offset=0):
 		offset = max(int(offset or 0), 0)
 	except (TypeError, ValueError):
 		limit, offset = 20, 0
+	allowed_sort = {"posting_date": "posting_date", "amount": "paid_amount", "payment_mode": "mode_of_payment"}
+	order_by = allowed_sort.get(sort, "posting_date")
+	if direction not in ("asc", "desc"):
+		direction = "desc"
 	rows = frappe.get_list(
 		"Payment Entry",
-		fields=["name", "posting_date", "party", "paid_amount", "mode_of_payment", "status", "remarks"],
-		filters={"docstatus": 1},
-		order_by="posting_date desc",
+		fields=["name", "posting_date", "party", "paid_amount", "mode_of_payment", "status", "remarks", "docstatus"],
+		filters={"docstatus": ["!=", 2]},
+		order_by=f"{order_by} {direction}",
 		limit_page_length=limit,
 		limit_start=offset,
 	)
+	for r in rows:
+		refs = frappe.get_all("Payment Entry Reference", filters={"parent": r.name},
+		                      fields=["reference_doctype", "reference_name"], limit=1)
+		r["ref_doctype"] = refs[0].reference_doctype if refs else None
+		r["ref_name"] = refs[0].reference_name if refs else None
+		r["job_reference"] = None
+		if r["ref_doctype"] == "Sales Invoice" and r["ref_name"]:
+			r["job_reference"] = frappe.db.get_value("Sales Invoice", r["ref_name"], "job_reference")
 	return {"payments": rows, "has_more": len(rows) == limit}
 
 
@@ -691,11 +731,23 @@ def create_job(data):
 	_require_write()
 	if isinstance(data, str):
 		data = frappe.parse_json(data)
+	ownership = data.get("vehicle_ownership")
+	if not ownership and data.get("customer") and data.get("vehicle"):
+		ownership = frappe.db.get_value(
+			"Vehicle Ownership", {"vehicle": data["vehicle"], "owner_name": data["customer"]}, "name"
+		)
+		if not ownership:
+			ownership = frappe.get_doc(
+				{"doctype": "Vehicle Ownership", "vehicle": data["vehicle"],
+				 "owner_name": data["customer"], "is_primary": 1}
+			).insert().name
+	if not ownership:
+		frappe.throw("Select a customer and vehicle (or an ownership record).")
 	doc = frappe.get_doc(
 		{
 			"doctype": "Job Master",
 			"date": data.get("date") or today(),
-			"vehicle_ownership": data.get("vehicle_ownership"),
+			"vehicle_ownership": ownership,
 			"customer_type": data.get("customer_type") or "Customer",
 			"service_type": data.get("service_type") or "Paid",
 			"km_reading": data.get("km_reading") or 0,
@@ -940,9 +992,9 @@ def update_job(name, data):
 	doc = frappe.get_doc("Job Master", name)
 	if doc.status in ("Completed", "Cancelled"):
 		frappe.throw(f"Cannot edit a {doc.status} job.")
-	for f in ("customer_type", "service_type", "km_reading", "supervisor", "mechanic", "complaints", "company"):
+	for f in ("date", "status", "customer_type", "service_type", "km_reading", "supervisor", "mechanic", "complaints", "company"):
 		if f in data:
-			doc.set(f, data[f])
+			doc.set(f, data[f] or None if f in ("supervisor", "mechanic") else data[f])
 	for r in (data.get("items") or []):
 		if r.get("item_no"):
 			doc.append("items", {"item_no": resolve_item_master(r["item_no"]), "qty": r.get("qty") or 1, "rate": r.get("rate") or 0})
@@ -1005,8 +1057,11 @@ IMPORTABLE = {
 
 
 @frappe.whitelist()
-def import_csv(entity, rows):
-	"""Insert rows from a parsed CSV (header must match field list)."""
+def import_csv(entity, rows, dry_run=False):
+	"""Insert rows from a parsed CSV (header must match field list).
+
+	With dry_run=1, validates every row without writing (preview parity).
+	"""
 	if entity not in IMPORTABLE:
 		frappe.throw(f"Unknown import entity: {entity}")
 	doctype, fields = IMPORTABLE[entity]
@@ -1019,12 +1074,18 @@ def import_csv(entity, rows):
 		try:
 			if isinstance(row, list):
 				row = dict(zip(fields, row))
-			doc = frappe.get_doc({"doctype": doctype, **{f: row.get(f) for f in fields if row.get(f) not in (None, "")}})
-			doc.insert()
-			created.append(doc.name)
+			data = {f: row.get(f) for f in fields if row.get(f) not in (None, "")}
+			if dry_run:
+				doc = frappe.get_doc({"doctype": doctype, **data})
+				doc.validate()
+				created.append(f"row {i + 1}: OK")
+			else:
+				doc = frappe.get_doc({"doctype": doctype, **data})
+				doc.insert()
+				created.append(doc.name)
 		except Exception as e:
 			errors.append({"row": i + 1, "error": str(e)[:150]})
-	return {"created": created, "errors": errors, "message": f"Imported {len(created)}, failed {len(errors)}."}
+	return {"created": created, "errors": errors, "message": f"{'Would import' if dry_run else 'Imported'} {len(created)}, failed {len(errors)}."}
 
 
 # ============================================================================
@@ -1233,10 +1294,13 @@ def get_customer_ledger(customer, from_date=None, to_date=None):
 
 @frappe.whitelist()
 def template_csv(entity):
-	"""Header-only CSV template for imports (Laravel template parity)."""
-	if entity not in IMPORTABLE:
-		frappe.throw(f"Unknown import entity: {entity}")
-	_, fields = IMPORTABLE[entity]
+	"""Header-only CSV template (Laravel template parity; export cols as fallback)."""
+	if entity in IMPORTABLE:
+		fields = IMPORTABLE[entity][1]
+	elif entity in EXPORT_ENTITIES:
+		fields = EXPORT_ENTITIES[entity][1]
+	else:
+		frappe.throw(f"Unknown template entity: {entity}")
 	import csv
 	import io
 
@@ -1597,3 +1661,73 @@ def get_analytics_detail(kind, from_date=None, to_date=None):
 		out["buckets"] = buckets
 
 	return out
+
+
+@frappe.whitelist()
+def assign_bill(name, data):
+	"""Assign technician + replace parts/labours + bill (Laravel assign-update)."""
+	_require_write(name)
+	if isinstance(data, str):
+		data = frappe.parse_json(data)
+	doc = frappe.get_doc("Job Master", name)
+	if doc.status in ("Completed", "Cancelled"):
+		frappe.throw(f"Cannot bill a {doc.status} job.")
+	for f in ("mechanic", "supervisor"):
+		if f in data:
+			doc.set(f, data[f] or None)
+	doc.discount_percent = data.get("discount_percent") or 0
+	doc.discount_amount = data.get("discount_amount") or 0
+	if "gst_applicable" in data:
+		doc.gst_applicable = 1 if str(data["gst_applicable"]) in ("1", "true") else 0
+	doc.set("items", [])
+	for r in data.get("items") or []:
+		if r.get("item_no"):
+			doc.append("items", {
+				"item_no": resolve_item_master(r["item_no"]),
+				"qty": r.get("qty") or 0,
+				"rate": r.get("rate") or 0,
+				"labor_cost": r.get("labor_cost") or 0,
+			})
+	doc.set("job_labours", [])
+	for r in data.get("labours") or []:
+		if r.get("labour_master"):
+			doc.append("job_labours", {
+				"labour_master": r["labour_master"],
+				"technician": r.get("technician"),
+				"qty": r.get("qty") or 0,
+				"rate": r.get("rate") or 0,
+			})
+	doc.save()
+	return {"name": doc.name, "grand_total": doc.grand_total}
+
+
+@frappe.whitelist()
+def get_vehicle(name):
+	"""Single EV Vehicle for the edit form."""
+	if not frappe.has_permission("EV Vehicle", "read", name):
+		frappe.throw("Not permitted to view EV Vehicle.", frappe.PermissionError)
+	return {"vehicle": frappe.get_doc("EV Vehicle", name).as_dict()}
+
+
+@frappe.whitelist()
+def create_part(data):
+	"""Create an Item Master part (Laravel spare-parts.store parity)."""
+	if not frappe.has_permission("Item Master", "create"):
+		frappe.throw("Not permitted to create Item Master.", frappe.PermissionError)
+	if isinstance(data, str):
+		data = frappe.parse_json(data)
+	doc = frappe.get_doc(
+		{
+			"doctype": "Item Master",
+			"item_name": data.get("item_name"),
+			"category": data.get("category"),
+			"uom": data.get("uom") or "Nos",
+			"purchase_price": data.get("purchase_price") or 0,
+			"standard_rate": data.get("standard_rate") or 0,
+			"labor_charge": data.get("labor_charge") or 0,
+			"hsn_code": data.get("hsn_code"),
+			"gst_rate": data.get("gst_rate") or 0,
+			"min_qty": data.get("min_qty") or data.get("reorder_level") or 0,
+		}
+	).insert()
+	return {"name": doc.name, "item_no": doc.item_no}

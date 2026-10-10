@@ -2,7 +2,7 @@
 import { api } from "../api.js";
 import { icon } from "../icons.js";
 import { badge, button, card, dataTable, th, td, fieldLabel, textInput, money, escapeHtml } from "../ui.js";
-import { importButton, bindImport } from "../list.js";
+import { importButton, bindImport, exportDropdown, bindExportDropdown } from "../list.js";
 
 export async function InventoryView() {
   const header = `<h2 class="flex items-center gap-2 font-semibold text-xl text-gray-800 leading-tight">${icon("cube", "w-6 h-6 text-primary")}Inventory</h2>`;
@@ -18,7 +18,7 @@ export async function InventoryView() {
     <div><label class="block text-sm font-medium text-gray-700 mb-1">Class</label><select name="category" class="border-gray-300 rounded-lg"><option value="">All</option><option>Spare Part</option><option>Service</option><option>Consumable</option></select></div>
     <label class="flex items-center gap-2 h-10 px-3 border border-gray-300 rounded-lg bg-white text-sm text-gray-700"><input type="checkbox" name="low_only" value="1" class="rounded border-gray-300 text-primary">Low stock only</label>
     ${button(`${icon("magnifying-glass", "w-4 h-4")}Search`, { type: "submit" })}
-    ${button("Export", { variant: "secondary", attrs: `data-action="export"` })}
+    ${exportDropdown("items")}
     ${importButton("parts", "item_no,item_name,item_class,uom,standard_rate,hsn_code")}</form>
     <div id="inv-table"></div>
   </div></div>`;
@@ -83,8 +83,32 @@ InventoryView.mounted = async (view) => {
     });
     load();
   }));
-  view.querySelector('[data-action="export"]').addEventListener("click", () => {
-    window.open(`/api/method/ev_workshop.workshop_api.export_csv?entity=items`, "_blank");
+  bindExportDropdown(view, "items", () => {
+    const fd = new FormData(form);
+    return { search: fd.get("search") || undefined };
+  });
+  const partBtn = document.createElement("div");
+  partBtn.innerHTML = `<div class="mt-4">${card(`<details><summary class="cursor-pointer font-semibold text-gray-900">Add Spare Part</summary>
+    <form id="part-form" class="grid grid-cols-2 gap-3 mt-3">
+      <div>${fieldLabel("Part Name")}${textInput("item_name", "", "text", "required")}</div>
+      <div>${fieldLabel("Category")}<select name="category" class="block w-full rounded-md border border-gray-300 bg-white h-10 px-3 py-2 text-sm" required>
+        <option>Spare Part</option><option>Service</option><option>Consumable</option></select></div>
+      <div>${fieldLabel("Unit")}<select name="uom" class="block w-full rounded-md border border-gray-300 bg-white h-10 px-3 py-2 text-sm"><option>Nos</option><option>Sets</option><option>Hours</option><option>Liters</option></select></div>
+      <div>${fieldLabel("Purchase Price")}${textInput("purchase_price", "0", "number")}</div>
+      <div>${fieldLabel("MRP")}${textInput("standard_rate", "0", "number")}</div>
+      <div>${fieldLabel("Labor Charge")}${textInput("labor_charge", "0", "number")}</div>
+      <div>${fieldLabel("HSN Code")}${textInput("hsn_code")}</div>
+      <div>${fieldLabel("GST %")}${textInput("gst_rate", "18", "number")}</div>
+      <div>${fieldLabel("Reorder Level")}${textInput("min_qty", "0", "number")}</div>
+      <div class="col-span-2 flex justify-end">${button("Create", { variant: "primary", type: "submit" })}</div>
+    </form>`)}</div>`;
+  view.appendChild(partBtn);
+  partBtn.querySelector("#part-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    try {
+      await api.createPart(Object.fromEntries(new FormData(e.target).entries()));
+      window.location.reload();
+    } catch (ex) { alert(ex.message); }
   });
   await load();
 };

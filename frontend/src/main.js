@@ -9,36 +9,48 @@ if ("serviceWorker" in navigator) {
 import { shell } from "./layout.js";
 import { LoginView } from "./views/login.js";
 import { DashboardView } from "./views/dashboard.js";
-import { JobsView, JobDetailView } from "./views/jobs.js";
+import { JobsView, JobDetailView, JobEditView, JobAssignView } from "./views/jobs.js";
 import { CustomersView, CustomerDetailView } from "./views/customers.js";
-import { CountersView, CounterDetailView } from "./views/counters.js";
+import { CountersView, CounterDetailView, CounterEditView } from "./views/counters.js";
 import { PaymentsView } from "./views/payments.js";
 import { InventoryView } from "./views/inventory.js";
 import { EmployeesView } from "./views/employees.js";
 import { CatalogView } from "./views/catalog.js";
 import { AnalyticsView } from "./views/analytics.js";
 import { CompanyView } from "./views/company.js";
+import { VehicleCreateView, VehicleEditView } from "./views/vehicles.js";
+import { AnalyticsRevenueView, AnalyticsJobsView, AnalyticsInventoryView, AnalyticsPaymentsView, AnalyticsCustomersView } from "./views/analytics_sub.js";
 
 const routes = [
   { pattern: /^#\/login$/, render: LoginView, guest: true },
   { pattern: /^#\/dashboard$/, render: DashboardView },
+  { pattern: /^#\/jobs\/([^/]+)\/edit$/, render: (m) => JobEditView(decodeURIComponent(m[1])) },
+  { pattern: /^#\/jobs\/([^/]+)\/assign$/, render: (m) => JobAssignView(decodeURIComponent(m[1])) },
   { pattern: /^#\/jobs\/([^/]+)$/, render: (m) => JobDetailView(decodeURIComponent(m[1])) },
   { pattern: /^#\/jobs$/, render: JobsView },
   { pattern: /^#\/customers\/([^/]+)$/, render: (m) => CustomerDetailView(decodeURIComponent(m[1])) },
   { pattern: /^#\/customers$/, render: CustomersView },
+  { pattern: /^#\/counters\/([^/]+)\/edit$/, render: (m) => CounterEditView(decodeURIComponent(m[1])) },
   { pattern: /^#\/counters\/([^/]+)$/, render: (m) => CounterDetailView(decodeURIComponent(m[1])) },
   { pattern: /^#\/counters$/, render: CountersView },
   { pattern: /^#\/payments$/, render: PaymentsView },
   { pattern: /^#\/inventory$/, render: InventoryView },
   { pattern: /^#\/employees$/, render: EmployeesView },
   { pattern: /^#\/catalog$/, render: CatalogView },
+  { pattern: /^#\/analytics\/revenue$/, render: AnalyticsRevenueView },
+  { pattern: /^#\/analytics\/job-cards$/, render: AnalyticsJobsView },
+  { pattern: /^#\/analytics\/inventory$/, render: AnalyticsInventoryView },
+  { pattern: /^#\/analytics\/payments$/, render: AnalyticsPaymentsView },
+  { pattern: /^#\/analytics\/customers$/, render: AnalyticsCustomersView },
   { pattern: /^#\/analytics$/, render: AnalyticsView },
+  { pattern: /^#\/vehicles\/new$/, render: VehicleCreateView },
+  { pattern: /^#\/vehicles\/([^/]+)\/edit$/, render: (m) => VehicleEditView(decodeURIComponent(m[1])) },
   { pattern: /^#\/company$/, render: CompanyView },
 ];
 
 const state = {
   user: null,
-  collapsed: localStorage.getItem("gms.collapsed") === "1",
+  collapsed: localStorage.getItem("sidebar.collapsed") === "1",
   mobileOpen: false,
 };
 
@@ -98,7 +110,7 @@ function bindGlobal(app) {
       const a = b.dataset.action;
       if (a === "toggle-collapsed") {
         state.collapsed = !state.collapsed;
-        localStorage.setItem("gms.collapsed", state.collapsed ? "1" : "0");
+        localStorage.setItem("sidebar.collapsed", state.collapsed ? "1" : "0");
         render();
       } else if (a === "open-mobile") {
         state.mobileOpen = true;

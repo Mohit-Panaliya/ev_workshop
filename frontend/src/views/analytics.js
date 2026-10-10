@@ -26,11 +26,16 @@ function chartCard(title, canvasId, height = "h-[300px]") {
 export async function AnalyticsView() {
   const header = `<div class="flex items-center justify-between">
     <h2 class="flex items-center gap-3 font-semibold text-2xl tracking-tight">${icon("chart-bar", "w-7 h-7 text-primary")}Analytics</h2>
+    <div class="flex items-center gap-2">
     <select id="an-period" class="text-sm border border-input bg-background rounded-lg px-3 py-1.5">
       <option value="monthly">Monthly</option><option value="weekly">Weekly</option><option value="daily">Daily</option>
     </select>
     <input type="date" id="an-from" class="text-sm border border-input bg-background rounded-lg px-3 py-1.5">
     <input type="date" id="an-to" class="text-sm border border-input bg-background rounded-lg px-3 py-1.5">
+    </div>
+  </div>
+  <div class="flex flex-wrap gap-2">
+    ${["revenue", "job-cards", "inventory", "payments", "customers"].map((p) => `<a href="#/analytics/${p}" class="inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary-700">${p.replace("-", " ").replace(/\b\w/g, (c) => c.toUpperCase())} →</a>`).join("")}
   </div>`;
   const content = `<div class="py-8 bg-gradient-to-b from-muted/30 to-background min-h-screen"><div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
     <div id="an-error"></div>

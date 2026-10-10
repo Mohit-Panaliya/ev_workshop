@@ -155,3 +155,22 @@ export const JOB_STATUS_ICONS = {
   delivered: "check-circle", ready_for_delivery: "check-badge", in_progress: "clock",
   waiting_for_parts: "pause-circle", cancelled: "x-circle",
 }
+
+export function sortTh(label, column, current, right = false) {
+  const active = current && current.column === column
+  const arrow = active ? (current.direction === "asc" ? " ▲" : " ▼") : ""
+  return `<th class="align-middle px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider${right ? " text-right" : ""}"><a href="#" data-sort="${column}" class="hover:text-gray-900">${label}${arrow}</a></th>`
+}
+
+export function bindSort(table, current, onChange) {
+  table.querySelectorAll("[data-sort]").forEach((a) => a.addEventListener("click", (e) => {
+    e.preventDefault()
+    const col = a.dataset.sort
+    if (current.column === col) current.direction = current.direction === "asc" ? "desc" : "asc"
+    else {
+      current.column = col
+      current.direction = "asc"
+    }
+    onChange()
+  }))
+}

@@ -2,6 +2,7 @@
 import { api } from "../api.js";
 import { icon } from "../icons.js";
 import { badge, button, card, dataTable, th, td, fieldLabel, textInput, escapeHtml } from "../ui.js";
+import { openModal, closeModal } from "../components.js";
 
 const ROLE_BADGES = { technician: "primary", supervisor: "purple", front_desk: "purple", admin: "red", default: "gray" };
 
@@ -36,8 +37,10 @@ EmployeesView.mounted = async (view) => {
       ${td(escapeHtml(e.department || "-"))}
       ${td(escapeHtml(e.cell_number || "-"))}
       ${td(e.status === "Active" ? badge("green", "Active") : badge("gray", "Inactive"))}
+      ${td(`<button data-edit="${escapeHtml(e.name)}" class="text-primary hover:text-primary-700">${icon("pencil-square", "w-5 h-5")}</button>`, "text-right")}
     </tr>`).join("");
-    table.innerHTML = dataTable(`${th("Name")}${th("Role")}${th("Department")}${th("Mobile")}${th("Active")}`, html, "user-group", "No employees found.");
+    table.innerHTML = dataTable(`${th("Name")}${th("Role")}${th("Department")}${th("Mobile")}${th("Active")}${th("", "text-right")}`, html, "user-group", "No employees found.");
+    table.querySelectorAll("[data-edit]").forEach((b) => b.addEventListener("click", () => openEmployeeEdit(b.dataset.edit, load)));
   }
   form.addEventListener("change", load);
   await load();
@@ -61,3 +64,26 @@ EmployeesView.mounted = async (view) => {
     } catch (ex) { alert(ex.message); }
   });
 };
+
+function openEmployeeEdit(name, reload) {
+  const wrap = openModal("Edit Employee", `
+    <form id="emp-edit" class="grid grid-cols-2 gap-3">
+      <div>${fieldLabel("Mobile")}${textInput("cell_number")}</div>
+      <div>${fieldLabel("Department")}${textInput("department")}</div>
+      <div>${fieldLabel("Role")}<select name="designation" class="block w-full rounded-md border border-gray-300 bg-white h-10 px-3 py-2 text-sm"><option>Technician</option><option>Supervisor</option><option>Helper</option><option>Front Desk</option><option>Admin</option></select></div>
+      <div>${fieldLabel("Status")}<select name="active" class="block w-full rounded-md border border-gray-300 bg-white h-10 px-3 py-2 text-sm"><option value="1">Active</option><option value="0">Inactive</option></select></div>
+      <div class="col-span-2 flex justify-end gap-2">
+        <button type="button" data-close2 class="inline-flex items-center h-10 px-4 text-sm hover:bg-accent rounded-md">Cancel</button>
+        ${button("Update", { variant: "primary", type: "submit" })}
+      </div>
+    </form>`);
+  wrap.querySelector("[data-close2]").addEventListener("click", closeModal);
+  wrap.querySelector("#emp-edit").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    try {
+      await api.updateEmployee(name, Object.fromEntries(new FormData(e.target).entries()));
+      closeModal();
+      reload();
+    } catch (ex) { alert(ex.message); }
+  });
+}
