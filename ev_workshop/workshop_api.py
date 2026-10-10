@@ -1356,8 +1356,8 @@ def search_customers(q, limit=10):
 	rows = frappe.get_list(
 		"Customer",
 		fields=["name", "customer_name", "mobile_no"],
-		filters=[["customer_name", "like", f"%{safe}%"]],
-		or_filters=[["mobile_no", "like", f"%{safe}%"]],
+		filters=[["Customer", "customer_name", "like", f"%{safe}%"]],
+		or_filters=[["Customer", "mobile_no", "like", f"%{safe}%"]],
 		order_by="customer_name",
 		limit_page_length=limit,
 	)
@@ -1376,8 +1376,8 @@ def search_parts(q, limit=20):
 	rows = frappe.get_list(
 		"Item Master",
 		fields=["item_no", "item_name", "standard_rate", "labor_charge", "sgst_percent", "cgst_percent", "igst_percent"],
-		filters=[["item_name", "like", f"%{safe}%"]],
-		or_filters=[["item_no", "like", f"%{safe}%"]],
+		filters=[["Item Master", "item_name", "like", f"%{safe}%"]],
+		or_filters=[["Item Master", "item_no", "like", f"%{safe}%"]],
 		order_by="item_name",
 		limit_page_length=limit,
 	)
