@@ -138,19 +138,18 @@ def get_jobs(status=None, search=None, limit=20, offset=0, from_date=None, to_da
 	if search:
 		safe = str(search).replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 		like = f"%{safe}%"
-		or_filters = [
+		filters += [
 			["Job Master", "name", "like", like],
+			"or",
 			["Job Master", "customer_name", "like", like],
+			"or",
 			["Job Master", "mobile_no", "like", like],
 		]
-	else:
-		or_filters = None
 
 	jobs = frappe.get_list(
 		"Job Master",
 		fields=[*JOB_LIST_FIELDS, "vehicle_ownership"],
 		filters=filters or {},
-		or_filters=or_filters,
 		order_by=f"{ {'name': 'name', 'date': 'date', 'status': 'status', 'grand_total': 'grand_total'}.get(sort, 'date')} {'asc' if direction == 'asc' else 'desc'}, creation desc",
 		limit_page_length=per_page,
 		limit_start=offset,
@@ -1356,8 +1355,11 @@ def search_customers(q, limit=10):
 	rows = frappe.get_list(
 		"Customer",
 		fields=["name", "customer_name", "mobile_no"],
-		filters=[["Customer", "customer_name", "like", f"%{safe}%"]],
-		or_filters=[["Customer", "mobile_no", "like", f"%{safe}%"]],
+		filters=[
+			["Customer", "customer_name", "like", f"%{safe}%"],
+			"or",
+			["Customer", "mobile_no", "like", f"%{safe}%"],
+		],
 		order_by="customer_name",
 		limit_page_length=limit,
 	)
@@ -1376,8 +1378,11 @@ def search_parts(q, limit=20):
 	rows = frappe.get_list(
 		"Item Master",
 		fields=["item_no", "item_name", "standard_rate", "labor_charge", "sgst_percent", "cgst_percent", "igst_percent"],
-		filters=[["Item Master", "item_name", "like", f"%{safe}%"]],
-		or_filters=[["Item Master", "item_no", "like", f"%{safe}%"]],
+		filters=[
+			["Item Master", "item_name", "like", f"%{safe}%"],
+			"or",
+			["Item Master", "item_no", "like", f"%{safe}%"],
+		],
 		order_by="item_name",
 		limit_page_length=limit,
 	)
