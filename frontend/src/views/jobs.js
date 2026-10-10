@@ -7,6 +7,7 @@ import { bindBulkDelete } from "../list.js";
 const PAY_BADGES = { paid: "green", partially_paid: "amber", unbilled: "gray", default: "red" };
 
 function payStatus(j) {
+  if (j.pay_status) return j.pay_status;
   const billed = Number(j.amount_billed ?? j.grand_total ?? 0);
   if (!billed) return "unbilled";
   const due = Number(j.outstanding ?? (billed - Number(j.amount_paid || 0)));
@@ -16,6 +17,10 @@ function payStatus(j) {
 }
 
 export async function JobsView() {
+  let techs = [];
+  try {
+    techs = (await api.jobOptions()).technicians || [];
+  } catch { /* filter still renders */ }
   const header = `<div class="flex justify-between items-center">
     <h2 class="flex items-center gap-2 font-semibold text-xl text-gray-800 leading-tight">${icon("wrench-screwdriver", "w-6 h-6 text-primary")}Job Cards</h2>
     <div class="flex items-center gap-2">
@@ -28,6 +33,9 @@ export async function JobsView() {
       ${button(`${icon("magnifying-glass", "w-4 h-4")}Search`, { type: "submit" })}</div>
       <div class="bg-white rounded-lg border border-gray-200 p-4"><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div>${fieldLabel("Status")}<select name="status" class="w-full border-gray-300 rounded-lg"><option value="">All Statuses</option>${["Admitted", "Inspection", "Quoted", "Approved", "Repairing", "Ready", "Completed", "Cancelled"].map((s) => `<option>${s}</option>`).join("")}</select></div>
+        <div>${fieldLabel("Technician")}<select name="technician" class="w-full border-gray-300 rounded-lg"><option value="">All Technicians</option>${techs.map((t) => `<option value="${t.name}">${escapeHtml(t.employee_name)}</option>`).join("")}</select></div>
+        <div>${fieldLabel("Payment")}<select name="payment_status" class="w-full border-gray-300 rounded-lg"><option value="">All</option><option value="paid">Paid</option><option value="partially_paid">Partially paid</option><option value="unbilled">Unbilled</option><option value="unpaid">Unpaid</option></select></div>
+        <div>${fieldLabel("Type")}<select name="service_type" class="w-full border-gray-300 rounded-lg"><option value="">All Types</option><option>Free</option><option>Paid</option></select></div>
         <div>${fieldLabel("From")}<input type="date" name="from_date" class="w-full border-gray-300 rounded-lg"></div>
         <div>${fieldLabel("To")}<input type="date" name="to_date" class="w-full border-gray-300 rounded-lg"></div>
         <div>${fieldLabel("Per page")}<select name="per_page" class="w-full border-gray-300 rounded-lg"><option>15</option><option>25</option><option>50</option><option>100</option></select></div>
@@ -44,13 +52,29 @@ export async function JobsView() {
 JobsView.mounted = async (view) => {
   const table = view.querySelector("#jobs-table");
   const form = view.querySelector("#jobs-filter");
+  let page = 1;
+  let pager = document.createElement("div");
+  pager.id = "jobs-pager";
+  table.after(pager);
   async function load() {
     const fd = new FormData(form);
-    const params = { search: fd.get("search") || undefined, status: fd.get("status") || undefined, limit: Number(fd.get("per_page")) || 15, from_date: fd.get("from_date") || undefined, to_date: fd.get("to_date") || undefined };
+    const params = {
+      search: fd.get("search") || undefined,
+      status: fd.get("status") || undefined,
+      technician: fd.get("technician") || undefined,
+      payment_status: fd.get("payment_status") || undefined,
+      service_type: fd.get("service_type") || undefined,
+      per_page: Number(fd.get("per_page")) || 15,
+      page,
+      from_date: fd.get("from_date") || undefined,
+      to_date: fd.get("to_date") || undefined,
+    };
     let jobs = [];
+    let meta = { page: 1, pages: 1, total: 0 };
     try {
       const r = await api.jobs(params);
       jobs = r.jobs;
+      meta = { page: r.page || 1, pages: r.pages || 1, total: r.total || 0 };
     } catch (e) {
       table.innerHTML = `<p class="text-sm text-red-600">${e.message}</p>`;
       return;
@@ -73,8 +97,22 @@ JobsView.mounted = async (view) => {
       rows, "wrench-screwdriver", "No job cards found."
     );
     bindBulkDelete(view, table);
+    pager.innerHTML = `<div class="border-t border-border px-6 py-3 flex items-center justify-between text-sm text-gray-600">
+      <span>Total ${meta.total} record(s)</span>
+      <span class="flex items-center gap-1">
+        ${Array.from({ length: Math.min(meta.pages, 11) }, (_, i) => {
+          const p = i + 1;
+          return `<button data-page="${p}" class="min-w-8 h-8 px-2 rounded-md ${p === meta.page ? "bg-primary text-white font-semibold" : "hover:bg-accent"}">${p}</button>`;
+        }).join("")}
+        ${meta.pages > 11 ? `<span>… ${meta.pages}</span>` : ""}
+      </span>
+    </div>`;
+    pager.querySelectorAll("[data-page]").forEach((b) => b.addEventListener("click", () => {
+      page = Number(b.dataset.page);
+      load();
+    }));
   }
-  form.addEventListener("submit", (e) => { e.preventDefault(); load(); });
+  form.addEventListener("submit", (e) => { e.preventDefault(); page = 1; load(); });
   view.querySelector('[data-action="export"]').addEventListener("click", () => {
     window.open(`/api/method/ev_workshop.workshop_api.export_csv?entity=jobs`, "_blank");
   });

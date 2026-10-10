@@ -29,9 +29,41 @@ function navLink(item, active, collapsed) {
   </a>`
 }
 
+function userDropdown(user, collapsed) {
+  const initials = (user?.name || "?").split(" ").filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("");
+  const trigger = collapsed
+    ? `<button type="button" data-dropdown="user"
+        class="w-full flex items-center px-2 py-2 rounded-lg text-gray-700 hover:bg-accent focus:outline-none transition duration-150 ease-in-out justify-center px-0">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary text-white text-sm font-semibold shrink-0">${initials}</span>
+      </button>`
+    : `<button type="button" data-dropdown="user"
+        class="w-full flex items-center px-2 py-2 rounded-lg text-gray-700 hover:bg-accent focus:outline-none transition duration-150 ease-in-out">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary text-white text-sm font-semibold shrink-0">${initials}</span>
+        <span class="ms-3 flex-1 min-w-0 text-start">
+          <span class="block text-sm font-medium text-gray-800 truncate">${user?.name || ""}</span>
+          <span class="block text-xs text-gray-500 truncate">${user?.email || ""}</span>
+        </span>
+        ${icon("chevron-down", "w-4 h-4 text-gray-400 shrink-0")}
+      </button>`;
+  return `<div class="relative" data-dropdown-root="user">
+    <div>${trigger}</div>
+    <div data-dropdown-menu="user" style="display:none;"
+      class="absolute z-50 bottom-full mb-2 w-56 rounded-md shadow-lg ltr:origin-bottom-left rtl:origin-bottom-right start-0">
+      <div class="rounded-md ring-1 ring-black ring-opacity-5 py-1 bg-card">
+        <a href="#/company" class="block px-4 py-2 text-sm text-gray-700 hover:bg-accent">
+          <span class="inline-flex items-center">${icon("user-circle", "w-4 h-4 me-2")}Profile</span>
+        </a>
+        <a href="#/login" data-action="logout" class="block px-4 py-2 text-sm text-gray-700 hover:bg-accent">
+          <span class="inline-flex items-center">${icon("arrow-right-start-on-rectangle", "w-4 h-4 me-2")}Log Out</span>
+        </a>
+      </div>
+    </div>
+  </div>`;
+}
 function sidebar(collapsed, user, currentHash) {
   const links = NAV.map((n) => navLink(n, n.pattern.test(currentHash), collapsed)).join("")
   const initials = (user?.name || "?").split(" ").filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("")
+  void initials;
   return `<aside class="fixed inset-y-0 left-0 z-30 hidden md:flex flex-col bg-background border-r border-border transition-all duration-300 ease-in-out ${collapsed ? "w-20" : "w-64"}">
     <div class="flex items-center justify-center h-14 shrink-0 border-b border-border overflow-hidden">
       <a href="#/dashboard" class="flex items-center justify-center ${collapsed ? "h-5" : "h-9"}">${logo("h-full w-auto")}</a>
@@ -46,14 +78,7 @@ function sidebar(collapsed, user, currentHash) {
       </div>
       <div class="border-t border-border" aria-hidden="true"></div>
       <div class="p-2">
-        <div class="w-full flex items-center px-2 py-2 rounded-lg text-gray-700 ${collapsed ? "justify-center px-0" : ""}">
-          <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary text-white text-sm font-semibold shrink-0">${initials}</span>
-          ${collapsed ? "" : `<span class="ms-3 flex-1 min-w-0 text-start">
-            <span class="block text-sm font-medium text-gray-800 truncate">${user?.name || ""}</span>
-            <span class="block text-xs text-gray-500 truncate">${user?.email || ""}</span>
-          </span>
-          <button type="button" data-action="logout" title="Log Out" class="text-gray-400 hover:text-red-600">${icon("arrow-right-start-on-rectangle", "w-4 h-4")}</button>`}
-        </div>
+        ${userDropdown(user, collapsed)}
       </div>
     </div>
   </aside>`
@@ -73,6 +98,9 @@ function drawer(user, currentHash, open) {
       <button type="button" data-action="close-mobile" class="inline-flex items-center justify-center p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent focus:outline-none focus:bg-accent focus:text-foreground transition duration-150 ease-in-out">${icon("x-mark", "w-6 h-6")}</button>
     </div>
     <nav class="flex-1 overflow-y-auto py-4">${links}</nav>
+    <div class="p-2 border-t border-border">
+      ${userDropdown(user, false)}
+    </div>
   </aside>`
 }
 

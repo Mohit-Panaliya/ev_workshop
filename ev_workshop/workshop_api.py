@@ -108,42 +108,49 @@ def get_dashboard():
 
 
 @frappe.whitelist()
-def get_jobs(status=None, search=None, limit=20, offset=0, from_date=None, to_date=None):
+def get_jobs(status=None, search=None, limit=20, offset=0, from_date=None, to_date=None,
+             technician=None, service_type=None, payment_status=None, page=1, per_page=None):
 	"""Paginated job list with payment summary (Laravel job-cards index)."""
 	_require_read()
 	try:
-		limit = min(max(int(limit or 20), 1), 100)
-		offset = max(int(offset or 0), 0)
+		per_page = min(max(int(per_page or limit or 20), 1), 100)
+		page = max(int(page or 1), 1)
 	except (TypeError, ValueError):
-		limit, offset = 20, 0
+		per_page, page = 20, 1
+	offset = (page - 1) * per_page
 
-	filters = {}
+	filters = []
 	if status:
-		filters["status"] = status
+		filters.append(["Job Master", "status", "=", status])
 	if from_date and to_date:
-		filters["date"] = ["between", [from_date, to_date]]
+		filters.append(["Job Master", "date", "between", [from_date, to_date]])
 	elif from_date:
-		filters["date"] = [">=", from_date]
+		filters.append(["Job Master", "date", ">=", from_date])
 	elif to_date:
-		filters["date"] = ["<=", to_date]
+		filters.append(["Job Master", "date", "<=", to_date])
+	if technician:
+		filters.append(["Job Master", "mechanic", "=", technician])
+	if service_type:
+		filters.append(["Job Master", "service_type", "=", service_type])
+	if search:
+		safe = str(search).replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+		like = f"%{safe}%"
+		filters += [
+			["Job Master", "name", "like", like],
+			"or",
+			["Job Master", "customer_name", "like", like],
+			"or",
+			["Job Master", "mobile_no", "like", like],
+		]
 
 	jobs = frappe.get_list(
 		"Job Master",
 		fields=[*JOB_LIST_FIELDS, "vehicle_ownership"],
-		filters=filters,
+		filters=filters or {},
 		order_by="date desc, creation desc",
-		limit_page_length=limit,
+		limit_page_length=per_page,
 		limit_start=offset,
 	)
-	if search:
-		safe = str(search).replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_").lower()
-		jobs = [
-			j
-			for j in jobs
-			if safe in str(j.name or "").lower()
-			or safe in str(j.get("customer_name") or "").lower()
-			or safe in str(j.get("mobile_no") or "")
-		]
 	# Payment summary per job from linked Sales Invoices (Laravel payment badges)
 	for j in jobs:
 		inv = frappe.db.sql(
@@ -155,7 +162,19 @@ def get_jobs(status=None, search=None, limit=20, offset=0, from_date=None, to_da
 		j["amount_billed"] = flt(billed)
 		j["amount_paid"] = flt(billed) - flt(due)
 		j["outstanding"] = max(flt(due), 0)
-	return {"jobs": jobs, "has_more": len(jobs) == limit}
+		j["pay_status"] = (
+			"unbilled" if not flt(billed) else ("paid" if flt(due) <= 0 else ("partially_paid" if flt(due) < flt(billed) else "unpaid"))
+		)
+	if payment_status:
+		jobs = [j for j in jobs if j["pay_status"] == payment_status]
+
+	total = frappe.db.count("Job Master", dict(
+		({"status": status} if status else {}) |
+		({"mechanic": technician} if technician else {}) |
+		({"service_type": service_type} if service_type else {})
+	)) if not search else len(jobs) + offset
+	pages = max((total + per_page - 1) // per_page, 1)
+	return {"jobs": jobs, "has_more": page < pages, "page": page, "per_page": per_page, "total": total, "pages": pages}
 
 
 @frappe.whitelist()

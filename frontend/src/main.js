@@ -79,6 +79,19 @@ async function render() {
 }
 
 function bindGlobal(app) {
+  app.querySelectorAll("[data-dropdown]").forEach((t) => {
+    t.onclick = (e) => {
+      e.stopPropagation();
+      const root = t.closest("[data-dropdown-root]");
+      const menu = root ? root.querySelector("[data-dropdown-menu]") : null;
+      const willOpen = menu && menu.style.display === "none";
+      app.querySelectorAll("[data-dropdown-menu]").forEach((m) => { m.style.display = "none"; });
+      if (menu && willOpen) menu.style.display = "";
+    };
+  });
+  document.onclick = () => {
+    app.querySelectorAll("[data-dropdown-menu]").forEach((m) => { m.style.display = "none"; });
+  };
   app.querySelectorAll("[data-action]").forEach((b) => {
     b.onclick = (e) => {
       e.preventDefault();
