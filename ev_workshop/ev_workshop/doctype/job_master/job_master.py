@@ -23,6 +23,22 @@ from frappe.utils import now_datetime, flt
 class JobMaster(Document):
 	"""Handles job card workflow, validations, and calculations."""
 
+	def autoname(self):
+		"""PHP parity: JC-YYMMDD-NNN (daily sequence, e.g. JC-260823-023).
+
+		Existing records keep their names; only new documents use this.
+		"""
+		from frappe.utils import getdate
+
+		stamp = getdate(self.date or frappe.utils.today()).strftime("%y%m%d")
+		for _ in range(20):
+			n = (frappe.db.count("Job Master", {"name": ["like", f"JC-{stamp}-%"]}) or 0) + 1
+			candidate = f"JC-{stamp}-{n:03d}"
+			if not frappe.db.exists("Job Master", candidate):
+				self.name = candidate
+				return
+		self.name = f"JC-{stamp}-{frappe.utils.now_datetime().strftime('%H%M%S')}"
+
 	def validate(self):
 		"""Validate document before saving.
 

@@ -58,7 +58,8 @@
    "fieldname": "labor_cost",
    "fieldtype": "Currency",
    "in_list_view": 1,
-   "label": "Labor Cost"
+   "label": "Labor Cost",
+   "fetch_from": "item_no.labor_charge"
   },
   {
    "fieldname": "amount",

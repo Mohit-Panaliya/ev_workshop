@@ -7,6 +7,7 @@
  "engine": "InnoDB",
  "field_order": [
   "registration_no",
+  "is_non_rto",
   "model",
   "vehicle_model",
   "chassis_no",
@@ -22,8 +23,13 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Registration No",
-   "reqd": 1,
    "unique": 1
+  },
+  {
+   "fieldname": "is_non_rto",
+   "fieldtype": "Check",
+   "label": "NON-RTO (no registration)",
+   "default": "0"
   },
   {
    "fieldname": "model",

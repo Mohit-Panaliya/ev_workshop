@@ -280,42 +280,38 @@ def get_customer_statement(customer, from_date=None, to_date=None):
 # ============================================================================
 
 @frappe.whitelist()
-def get_analytics(period="monthly"):
+def get_analytics(period="monthly", from_date=None, to_date=None):
 	"""Revenue trend, job split, payments by mode, top customers, stock.
 
 	`period` mirrors the Laravel revenue filter: daily (last 30 days),
-	weekly (last 12 weeks) or monthly (last 6 months).
+	weekly (last 12 weeks) or monthly (last 6 months). `from_date/to_date`
+	override the window (Laravel date-range filter, default: current month).
 	"""
 	_require_read()
 	analytics = {}
 
-	if period == "daily":
-		analytics["revenue_trend"] = frappe.db.sql(
-			"""select date(posting_date) as month, sum(base_grand_total) as revenue,
-			          count(name) as invoices
-			   from `tabSales Invoice` where docstatus = 1
-			   and posting_date >= date_sub(curdate(), interval 30 day)
-			   group by date(posting_date) order by date(posting_date)""",
-			as_dict=True,
-		)
+	if from_date and to_date:
+		where, params, group = "posting_date between %s and %s", [from_date, to_date], "date(posting_date)"
+	elif from_date:
+		where, params, group = "posting_date >= %s", [from_date], "date(posting_date)"
+	elif to_date:
+		where, params, group = "posting_date <= %s", [to_date], "date(posting_date)"
+	elif period == "daily":
+		where, params, group = "posting_date >= date_sub(curdate(), interval 30 day)", [], "date(posting_date)"
 	elif period == "weekly":
-		analytics["revenue_trend"] = frappe.db.sql(
-			"""select yearweek(posting_date) as month, sum(base_grand_total) as revenue,
-			          count(name) as invoices
-			   from `tabSales Invoice` where docstatus = 1
-			   and posting_date >= date_sub(curdate(), interval 12 week)
-			   group by yearweek(posting_date) order by yearweek(posting_date)""",
-			as_dict=True,
-		)
+		where, params, group = "posting_date >= date_sub(curdate(), interval 12 week)", [], "yearweek(posting_date)"
 	else:
-		analytics["revenue_trend"] = frappe.db.sql(
-			"""select date_format(posting_date, '%Y-%m') as month,
-			          sum(base_grand_total) as revenue, count(name) as invoices
-			   from `tabSales Invoice` where docstatus = 1
-			   and posting_date >= date_sub(curdate(), interval 6 month)
-			   group by month order by month""",
-			as_dict=True,
-		)
+		month_start = get_first_day(today())
+		where, params, group = "posting_date >= %s", [month_start], "date_format(posting_date, '%Y-%m')"
+
+	analytics["revenue_trend"] = frappe.db.sql(
+		f"""select {group} as month, sum(base_grand_total) as revenue,
+		          count(name) as invoices
+		   from `tabSales Invoice` where docstatus = 1 and {where}
+		   group by {group} order by {group}""",
+		params,
+		as_dict=True,
+	)
 
 	status_rows = frappe.db.sql(
 		"select status, count(name) as total from `tabJob Master` group by status", as_dict=True
@@ -353,6 +349,20 @@ def get_analytics(period="monthly"):
 		as_dict=True,
 	)
 	analytics["revenue_split"] = {r.source: flt(r.revenue) for r in split_rows}
+
+	# Technician performance (Laravel analytics parity): jobs handled +
+	# labour value per mechanic/supervisor.
+	tech_rows = frappe.db.sql(
+		"""select e.employee_name as technician, count(j.name) as jobs,
+		          coalesce(sum(j.grand_total), 0) as billed
+		   from `tabJob Master` j left join `tabEmployee` e on e.name = j.mechanic
+		   where j.mechanic is not null and j.mechanic != ''
+		   group by j.mechanic order by jobs desc limit 10""",
+		as_dict=True,
+	)
+	analytics["technician_performance"] = [
+		{"technician": r.technician or "Unassigned", "jobs": r.jobs, "billed": flt(r.billed)} for r in tech_rows
+	]
 
 	company = frappe.db.get_default("company")
 	abbr = frappe.db.get_value("Company", company, "abbr") if company else None
@@ -1093,3 +1103,78 @@ def update_vehicle(name, data):
 			doc.set(f, data[f])
 	doc.save()
 	return {"name": doc.name}
+
+
+# ============================================================================
+# Master search (Laravel dashboard search parity)
+# ============================================================================
+
+@frappe.whitelist()
+def master_search(q, limit=8):
+	"""One box across customers, vehicles, jobs and counter invoices."""
+	_require_read()
+	if not q or len(str(q).strip()) < 2:
+		return {"customers": [], "vehicles": [], "jobs": [], "counters": []}
+	try:
+		limit = min(max(int(limit or 8), 1), 25)
+	except (TypeError, ValueError):
+		limit = 8
+	safe = str(q).replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+	like = f"%{safe}%"
+	return {
+		"customers": frappe.get_list(
+			"Customer", fields=["name", "customer_name", "mobile_no"],
+			filters=[["customer_name", "like", like]], order_by="customer_name", limit_page_length=limit),
+		"vehicles": frappe.get_list(
+			"EV Vehicle", fields=["name", "registration_no", "model"],
+			filters=[["registration_no", "like", like]], order_by="registration_no", limit_page_length=limit),
+		"jobs": frappe.get_list(
+			"Job Master", fields=["name", "customer_name", "status"],
+			filters=[["name", "like", like]], order_by="creation desc", limit_page_length=limit),
+		"counters": frappe.get_list(
+			"Counter Invoice", fields=["name", "walkin_name", "grand_total"],
+			filters=[["name", "like", like]], order_by="creation desc", limit_page_length=limit),
+	}
+
+
+# ============================================================================
+# Statement running-balance ledger (Laravel statement parity)
+# ============================================================================
+
+@frappe.whitelist()
+def get_customer_ledger(customer, from_date=None, to_date=None):
+	"""Combined jobs/invoices/payments ledger with running balance."""
+	if not frappe.has_permission("Customer", "read", customer):
+		frappe.throw("Not permitted to view this Customer.", frappe.PermissionError)
+	date_filter = ""
+	params = [customer]
+	if from_date and to_date:
+		date_filter = "and posting_date between %s and %s"
+		params += [from_date, to_date]
+	elif from_date:
+		date_filter = "and posting_date >= %s"
+		params.append(from_date)
+	elif to_date:
+		date_filter = "and posting_date <= %s"
+		params.append(to_date)
+
+	invoices = frappe.db.sql(
+		f"""select name, posting_date, grand_total as billed, paid_amount as paid
+		    from `tabSales Invoice` where docstatus = 1 and customer = %s {date_filter}
+		    order by posting_date, creation""",
+		params,
+		as_dict=True,
+	)
+	lines, balance = [], 0.0
+	for inv in invoices:
+		balance += flt(inv.billed) - flt(inv.paid)
+		lines.append(
+			{
+				"date": str(inv.posting_date),
+				"document": inv.name,
+				"billed": flt(inv.billed),
+				"paid": flt(inv.paid),
+				"balance": flt(balance),
+			}
+		)
+	return {"lines": lines, "closing_balance": flt(balance)}
