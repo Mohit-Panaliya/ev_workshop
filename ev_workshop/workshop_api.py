@@ -1616,7 +1616,7 @@ def get_analytics_detail(kind, from_date=None, to_date=None):
 			[from_date, to_date], as_dict=True)
 		used = {r.code: flt(r.used) for r in rows}
 		parts = frappe.get_all("Item Master",
-			fields=["item_no", "item_name", "item_class", "standard_rate", "purchase_price", "min_qty"])
+			fields=["item_no", "item_name", "item_class", "standard_rate", "min_qty"])
 		company = frappe.db.get_default("company")
 		abbr = frappe.db.get_value("Company", company, "abbr") if company else None
 		warehouse = f"Stores - {abbr}" if abbr else None
@@ -1627,8 +1627,8 @@ def get_analytics_detail(kind, from_date=None, to_date=None):
 				bal = frappe.db.get_value("Bin", {"item_code": p.item_no, "warehouse": warehouse}, "actual_qty") or 0
 			u = used.get(p.item_no, 0) or used.get(frappe.db.get_value("Item Master", p.item_no, "name"), 0)
 			lines.append({"code": p.item_no, "name": p.item_name, "category": p.item_class,
-			              "stock": flt(bal), "reorder": flt(p.min_qty), "cost": flt(p.purchase_price),
-			              "value": flt(bal) * flt(p.purchase_price), "used": flt(u)})
+			              "stock": flt(bal), "reorder": flt(p.min_qty), "cost": flt(p.standard_rate),
+			              "value": flt(bal) * flt(p.standard_rate), "used": flt(u)})
 		lines.sort(key=lambda r: r["used"], reverse=True)
 		out["lines"] = lines
 		out["total_value"] = sum(r["value"] for r in lines)
