@@ -105,5 +105,17 @@
   "options": "Job Master",
   "read_only": 1,
   "description": "Source Job Master for workshop invoices"
+ },
+ {
+  "custom_field": 1,
+  "docstatus": 0,
+  "doctype": "Custom Field",
+  "dt": "Company",
+  "fieldname": "company_logo",
+  "fieldtype": "Attach Image",
+  "label": "Company Logo",
+  "module": "EV Workshop",
+  "name": "Company-company_logo",
+  "insert_after": "company_name"
  }
 ]

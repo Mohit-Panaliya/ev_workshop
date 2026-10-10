@@ -901,11 +901,11 @@ def update_company_profile(data):
 		data = frappe.parse_json(data)
 	company = data.get("name") or frappe.db.get_default("company")
 	doc = frappe.get_doc("Company", company)
-	for f in ("company_name", "address", "city", "state", "pincode", "phone_no", "email", "gstin", "pan"):
+	for f in ("company_name", "address", "city", "state", "pincode", "phone_no", "email", "gstin", "pan", "company_logo"):
 		if f in data:
 			doc.set(f, data[f])
 	doc.save()
-	return {"name": doc.name}
+	return {"name": doc.name, "company_logo": doc.get("company_logo")}
 
 
 # ============================================================================
@@ -1274,3 +1274,326 @@ def export_selected(entity, names):
 	frappe.response["result"] = buf.getvalue()
 	frappe.response["doctype"] = f"{entity}_selected.csv"
 	frappe.response["type"] = "csv"
+
+
+# ============================================================================
+# Combobox + dependent lookups (Laravel searchable-combobox parity)
+# ============================================================================
+
+@frappe.whitelist()
+def search_customers(q, limit=10):
+	"""Lightweight customer lookup for comboboxes."""
+	_require_read()
+	q = (q or "").strip()
+	if len(q) < 1:
+		return []
+	safe = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+	rows = frappe.get_list(
+		"Customer",
+		fields=["name", "customer_name", "mobile_no"],
+		filters=[["customer_name", "like", f"%{safe}%"]],
+		or_filters=[["mobile_no", "like", f"%{safe}%"]],
+		order_by="customer_name",
+		limit_page_length=limit,
+	)
+	return [{"id": r.name, "label": f"{r.customer_name} — {r.mobile_no or ''}"} for r in rows]
+
+
+@frappe.whitelist()
+def search_parts(q, limit=20):
+	"""Spare-part lookup for line-item comboboxes (MRP/labor/GST included)."""
+	if not frappe.has_permission("Item Master", "read"):
+		frappe.throw("Not permitted to view Item Master.", frappe.PermissionError)
+	q = (q or "").strip()
+	if len(q) < 1:
+		return []
+	safe = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+	rows = frappe.get_list(
+		"Item Master",
+		fields=["item_no", "item_name", "standard_rate", "labor_charge", "sgst_percent", "cgst_percent", "igst_percent"],
+		filters=[["item_name", "like", f"%{safe}%"]],
+		or_filters=[["item_no", "like", f"%{safe}%"]],
+		order_by="item_name",
+		limit_page_length=limit,
+	)
+	return [
+		{"id": r.item_no, "label": f"{r.item_name} ({r.item_no})",
+		 "mrp": r.standard_rate, "labor": r.labor_charge,
+		 "sgst": r.sgst_percent, "cgst": r.cgst_percent, "igst": r.igst_percent}
+		for r in rows
+	]
+
+
+@frappe.whitelist()
+def customer_vehicles(customer):
+	"""Vehicles of one customer for dependent dropdowns."""
+	_require_read()
+	owns = frappe.get_all(
+		"Vehicle Ownership",
+		filters={"owner_name": customer},
+		fields=["vehicle", "registration_no", "model", "is_primary"],
+		order_by="is_primary desc",
+	)
+	out = []
+	for o in owns:
+		label = f"{o.registration_no or o.vehicle} — {o.model or ''}".strip(" —")
+		out.append({"id": o.vehicle, "registration_no": o.registration_no, "model": o.model, "label": label})
+	return out
+
+
+# ============================================================================
+# Full updates (Laravel edit/update parity)
+# ============================================================================
+
+@frappe.whitelist()
+def update_employee(name, data):
+	"""Edit HRMS Employee (Laravel employees.update parity)."""
+	if not frappe.has_permission("Employee", "write", name):
+		frappe.throw("Not permitted to update Employee.", frappe.PermissionError)
+	if isinstance(data, str):
+		data = frappe.parse_json(data)
+	doc = frappe.get_doc("Employee", name)
+	for f in ("first_name", "cell_number", "department", "designation", "date_of_joining", "status"):
+		if f in data:
+			doc.set(f, data[f])
+	if "active" in data:
+		doc.status = "Active" if str(data["active"]) in ("1", "true", "Active") else "Inactive"
+	doc.save()
+	return {"name": doc.name}
+
+
+@frappe.whitelist()
+def update_labour(name, data):
+	"""Edit Labour Master (Laravel labour-masters.update parity)."""
+	if not frappe.has_permission("Labour Master", "write", name):
+		frappe.throw("Not permitted to update Labour Master.", frappe.PermissionError)
+	if isinstance(data, str):
+		data = frappe.parse_json(data)
+	doc = frappe.get_doc("Labour Master", name)
+	for f in ("service_name", "category", "standard_rate", "hsn_sac_code", "gst_rate"):
+		if f in data:
+			doc.set(f, data[f])
+	if "taxable" in data:
+		doc.taxable = 1 if str(data["taxable"]) in ("1", "true") else 0
+	if not doc.taxable:
+		doc.gst_rate = 0
+	doc.save()
+	return {"name": doc.name}
+
+
+@frappe.whitelist()
+def update_part(item_no, data):
+	"""Edit Item Master (Laravel spare-parts.update parity)."""
+	if not frappe.has_permission("Item Master", "write"):
+		frappe.throw("Not permitted to update Item Master.", frappe.PermissionError)
+	if isinstance(data, str):
+		data = frappe.parse_json(data)
+	name = frappe.db.get_value("Item Master", {"item_no": item_no}, "name") or item_no
+	doc = frappe.get_doc("Item Master", name)
+	for f in ("item_name", "category", "uom", "purchase_price", "standard_rate", "labor_charge",
+	          "hsn_code", "gst_rate", "min_qty"):
+		if f in data:
+			doc.set(f, data[f])
+	doc.save()
+	return {"name": doc.name}
+
+
+@frappe.whitelist()
+def update_brand_model(kind, name, data):
+	"""Edit Vehicle Brand / Model (Laravel catalog parity)."""
+	doctype = "Vehicle Brand" if kind == "brand" else "Vehicle Model"
+	if not frappe.has_permission(doctype, "write", name):
+		frappe.throw(f"Not permitted to update {doctype}.", frappe.PermissionError)
+	if isinstance(data, str):
+		data = frappe.parse_json(data)
+	doc = frappe.get_doc(doctype, name)
+	if kind == "brand":
+		if "brand_name" in data:
+			doc.brand_name = data["brand_name"]
+	else:
+		for f in ("vehicle_brand", "model_name", "battery_type"):
+			if f in data:
+				doc.set(f, data[f])
+	doc.save()
+	return {"name": doc.name}
+
+
+@frappe.whitelist()
+def update_payment(name, data):
+	"""Edit a draft Payment Entry (Laravel payments.update parity)."""
+	if not frappe.has_permission("Payment Entry", "write", name):
+		frappe.throw("Not permitted to update Payment Entry.", frappe.PermissionError)
+	if isinstance(data, str):
+		data = frappe.parse_json(data)
+	doc = frappe.get_doc("Payment Entry", name)
+	if doc.docstatus != 0:
+		frappe.throw("Only draft payments can be edited. Void and re-record instead.")
+	for f in ("paid_amount", "received_amount", "mode_of_payment", "posting_date", "reference_no", "remarks"):
+		if f in data:
+			doc.set(f, data[f])
+	doc.save()
+	return {"name": doc.name}
+
+
+@frappe.whitelist()
+def update_counter(name, data):
+	"""Edit a draft Counter Invoice (Laravel counter-invoices.update parity)."""
+	if not frappe.has_permission("Counter Invoice", "write", name):
+		frappe.throw("Not permitted to update Counter Invoice.", frappe.PermissionError)
+	if isinstance(data, str):
+		data = frappe.parse_json(data)
+	doc = frappe.get_doc("Counter Invoice", name)
+	if doc.docstatus != 0:
+		frappe.throw("Only draft counter invoices can be edited.")
+	for f in ("company", "invoice_date", "customer", "walkin_name", "walkin_mobile",
+	          "gst_applicable", "discount_percent", "discount_amount"):
+		if f in data:
+			doc.set(f, data[f])
+	if "items" in data:
+		doc.set("items", [])
+		for r in data["items"] or []:
+			if r.get("item_master"):
+				doc.append("items", {
+					"item_master": resolve_item_master(r["item_master"]),
+					"qty": r.get("qty") or 1,
+					"mrp": r.get("mrp") or 0,
+					"discount_percent": r.get("discount_percent") or 0,
+				})
+	doc.save()
+	return {"name": doc.name, "grand_total": doc.grand_total}
+
+
+@frappe.whitelist()
+def create_vehicle(data):
+	"""Create EV Vehicle + ownership (Laravel vehicles.store parity)."""
+	if not frappe.has_permission("EV Vehicle", "create"):
+		frappe.throw("Not permitted to create EV Vehicle.", frappe.PermissionError)
+	if isinstance(data, str):
+		data = frappe.parse_json(data)
+	if data.get("vehicle_model"):
+		model = frappe.db.get_value("Vehicle Model", data["vehicle_model"], ["model_name", "vehicle_brand"], as_dict=True)
+	else:
+		model = None
+	doc = frappe.get_doc(
+		{
+			"doctype": "EV Vehicle",
+			"registration_no": (data.get("registration_no") or "").upper() or None,
+			"is_non_rto": data.get("is_non_rto") or 0,
+			"vehicle_model": data.get("vehicle_model"),
+			"model": (model.model_name if model else None) or data.get("model"),
+			"chassis_no": data.get("chassis_no"),
+			"motor_no": data.get("motor_no") or data.get("motor_battery_serial_no"),
+			"battery_no": data.get("battery_no"),
+			"date_of_sale": data.get("date_of_sale"),
+			"color": data.get("color"),
+		}
+	).insert()
+	ownership = None
+	if data.get("customer"):
+		ownership = frappe.get_doc(
+			{"doctype": "Vehicle Ownership", "vehicle": doc.name, "owner_name": data["customer"], "is_primary": 1}
+		).insert().name
+	return {"vehicle": doc.name, "ownership": ownership}
+
+
+@frappe.whitelist()
+def outstanding_documents(customer):
+	"""Docs with dues for the receive-payment picker (Laravel outstandingDocuments)."""
+	if not frappe.has_permission("Customer", "read", customer):
+		frappe.throw("Not permitted to view this Customer.", frappe.PermissionError)
+	docs = []
+	for si in frappe.get_list(
+		"Sales Invoice",
+		fields=["name", "posting_date", "grand_total", "outstanding_amount", "job_reference"],
+		filters={"customer": customer, "docstatus": 1},
+		order_by="posting_date desc",
+		limit_page_length=100,
+	):
+		due = max(flt(si.outstanding_amount), 0)
+		if due > 0:
+			docs.append({"doctype": "Sales Invoice", "name": si.name, "date": str(si.posting_date),
+			             "label": si.job_reference or si.name, "outstanding": due})
+	return docs
+
+
+@frappe.whitelist()
+def get_analytics_detail(kind, from_date=None, to_date=None):
+	"""Sub-page datasets (Laravel analytics/revenue|job-cards|inventory|payments|customers)."""
+	_require_read()
+	if not from_date or not to_date:
+		from_date, to_date = get_first_day(today()), today()
+	out = {"from_date": from_date, "to_date": to_date}
+
+	if kind == "revenue":
+		out["by_day"] = frappe.db.sql(
+			"""select date(posting_date) as day, sum(base_grand_total) as total
+			   from `tabSales Invoice` where docstatus = 1 and posting_date between %s and %s
+			   group by date(posting_date) order by date(posting_date)""",
+			[from_date, to_date], as_dict=True)
+		out["by_type"] = frappe.db.sql(
+			"""select coalesce(j.service_type, 'Counter') as job_type, sum(si.base_grand_total) as total,
+			          count(distinct si.name) as invoices
+			   from `tabSales Invoice` si left join `tabJob Master` j on j.name = si.job_reference
+			   where si.docstatus = 1 and si.posting_date between %s and %s
+			   group by job_type order by total desc""",
+			[from_date, to_date], as_dict=True)
+
+	elif kind == "job_cards":
+		out["by_status"] = frappe.db.sql(
+			"""select status, count(name) as total from `tabJob Master`
+			   where date between %s and %s group by status""",
+			[from_date, to_date], as_dict=True)
+
+	elif kind == "inventory":
+		rows = frappe.db.sql(
+			"""select ji.item_no as code, sum(ji.qty) as used
+			   from `tabJob Item` ji join `tabJob Master` j on j.name = ji.parent
+			   where j.date between %s and %s group by ji.item_no""",
+			[from_date, to_date], as_dict=True)
+		used = {r.code: flt(r.used) for r in rows}
+		parts = frappe.get_all("Item Master",
+			fields=["item_no", "item_name", "item_class", "standard_rate", "purchase_price", "min_qty"])
+		company = frappe.db.get_default("company")
+		abbr = frappe.db.get_value("Company", company, "abbr") if company else None
+		warehouse = f"Stores - {abbr}" if abbr else None
+		lines = []
+		for p in parts:
+			bal = 0
+			if frappe.db.exists("Item", p.item_no) and warehouse:
+				bal = frappe.db.get_value("Bin", {"item_code": p.item_no, "warehouse": warehouse}, "actual_qty") or 0
+			u = used.get(p.item_no, 0) or used.get(frappe.db.get_value("Item Master", p.item_no, "name"), 0)
+			lines.append({"code": p.item_no, "name": p.item_name, "category": p.item_class,
+			              "stock": flt(bal), "reorder": flt(p.min_qty), "cost": flt(p.purchase_price),
+			              "value": flt(bal) * flt(p.purchase_price), "used": flt(u)})
+		lines.sort(key=lambda r: r["used"], reverse=True)
+		out["lines"] = lines
+		out["total_value"] = sum(r["value"] for r in lines)
+
+	elif kind == "payments":
+		out["ledger"] = frappe.get_list(
+			"Payment Entry",
+			fields=["name", "posting_date", "party", "paid_amount", "mode_of_payment", "reference_no", "remarks"],
+			filters={"docstatus": 1, "posting_date": ["between", [from_date, to_date]]},
+			order_by="posting_date desc", limit_page_length=500)
+
+	elif kind == "customers":
+		rows = frappe.db.sql(
+			"""select customer, count(name) as visits, sum(base_grand_total - outstanding_amount) as paid
+			   from `tabSales Invoice` where docstatus = 1 and posting_date between %s and %s
+			   group by customer order by paid desc limit 50""",
+			[from_date, to_date], as_dict=True)
+		out["rows"] = [{"customer": r.customer, "visits": r.visits, "paid": flt(r.paid)} for r in rows]
+
+	elif kind == "aging":
+		buckets = {"0-7": 0, "8-30": 0, "30+": 0}
+		today_d = getdate(today())
+		for si in frappe.get_all("Sales Invoice", filters={"docstatus": 1},
+		                         fields=["posting_date", "outstanding_amount"], limit_page_length=2000):
+			due = max(flt(si.outstanding_amount), 0)
+			if due <= 0.005:
+				continue
+			age = (today_d - getdate(si.posting_date)).days if si.posting_date else 0
+			buckets["0-7" if age <= 7 else ("8-30" if age <= 30 else "30+")] += due
+		out["buckets"] = buckets
+
+	return out
