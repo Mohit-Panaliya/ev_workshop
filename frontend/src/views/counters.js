@@ -147,7 +147,7 @@ function bindCounterCreate(view) {
   function addLine() {
     const div = document.createElement("div");
     div.className = "grid grid-cols-4 gap-2 items-end";
-    div.innerHTML = `<div>${fieldLabel("Item")}<select name="item" class="block w-full rounded-md border border-gray-300 text-sm" data-parts="1"></select></div>
+    div.innerHTML = `<div>${fieldLabel("Item")}<select name="item" class="block w-full rounded-md border border-gray-300 bg-white h-10 px-3 py-2 text-sm transition-colors focus:ring-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 shadow-sm" data-parts="1"></select></div>
       <div>${fieldLabel("Qty")}${textInput("qty", "1", "number")}</div>
       <div>${fieldLabel("MRP")}${textInput("mrp", "0", "number")}</div>
       <div>${button("Remove", { variant: "danger", attrs: `data-remove="" type="button"` })}</div>`;

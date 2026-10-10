@@ -1,7 +1,7 @@
 // job_cards/index + show + create parity.
 import { api } from "../api.js";
 import { icon } from "../icons.js";
-import { badge, button, card, dataTable, th, td, searchBar, fieldLabel, textInput, money, fmtDate, escapeHtml, pageHeader, statusBadge, JOB_STATUS_BADGES, JOB_STATUS_ICONS } from "../ui.js";
+import { badge, button, card, dataTable, th, td, searchBar, searchBarExact, fieldLabel, filterLabel, filterInput, filterSelect, textInput, money, fmtDate, escapeHtml, pageHeader, statusBadge, JOB_STATUS_BADGES, JOB_STATUS_ICONS } from "../ui.js";
 import { bindBulkDelete } from "../list.js";
 
 const PAY_BADGES = { paid: "green", partially_paid: "amber", unbilled: "gray", default: "red" };
@@ -24,26 +24,34 @@ export async function JobsView() {
   const header = `<div class="flex justify-between items-center">
     <h2 class="flex items-center gap-2 font-semibold text-xl text-gray-800 leading-tight">${icon("wrench-screwdriver", "w-6 h-6 text-primary")}Job Cards</h2>
     <div class="flex items-center gap-2">
-      ${button(`${icon("arrow-up-tray", "w-4 h-4")}Export`, { variant: "secondary", attrs: `data-action="export"` })}
+      ${button(`${icon("arrow-up-tray", "w-4 h-4")}Import CSV`, { variant: "secondary", attrs: `data-action="import-jobs"` })}
+      <div class="relative" data-dropdown-root="export">
+        <div><button type="button" data-dropdown="export" class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md h-10 px-4 py-2 text-sm font-medium shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 hover:text-gray-900 shadow-sm">${icon("arrow-down-tray", "w-4 h-4")}Export ${icon("chevron-down", "w-4 h-4")}</button></div>
+        <div data-dropdown-menu="export" style="display:none;" class="absolute z-50 mt-2 64 rounded-md shadow-lg ltr:origin-top-left rtl:origin-top-right start-0">
+          <div class="rounded-md ring-1 ring-black ring-opacity-5 py-1 bg-card">
+            <a href="#" data-export="all" class="block w-full px-4 py-2 text-start text-sm leading-5 text-gray-700 hover:bg-accent hover:text-accent-foreground">Export All (CSV)</a>
+            <a href="#" data-export="filtered" class="block w-full px-4 py-2 text-start text-sm leading-5 text-gray-700 hover:bg-accent hover:text-accent-foreground">Export Filtered Results (CSV)</a>
+          </div>
+        </div>
+      </div>
     </div></div>`;
   const content = `<div class="py-6"><div class="max-w-full sm:px-6 lg:px-8 space-y-4">
     <div id="jobs-flash"></div>
-    <form id="jobs-filter" class="space-y-4">
-      <div class="flex gap-3"><div class="flex-1">${searchBar("search", "", "Search by job card no, customer name, or vehicle registration...")}</div>
+    <form id="jobs-filter" method="GET" class="mb-6"><div class="space-y-4">
+      <div class="flex gap-3"><div class="flex-1">${searchBarExact("search", "", "Search by job card no, customer name, or vehicle registration...")}</div>
       ${button(`${icon("magnifying-glass", "w-4 h-4")}Search`, { type: "submit" })}</div>
       <div class="bg-white rounded-lg border border-gray-200 p-4"><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div>${fieldLabel("Status")}<select name="status" class="w-full border-gray-300 rounded-lg"><option value="">All Statuses</option>${["Admitted", "Inspection", "Quoted", "Approved", "Repairing", "Ready", "Completed", "Cancelled"].map((s) => `<option>${s}</option>`).join("")}</select></div>
-        <div>${fieldLabel("Technician")}<select name="technician" class="w-full border-gray-300 rounded-lg"><option value="">All Technicians</option>${techs.map((t) => `<option value="${t.name}">${escapeHtml(t.employee_name)}</option>`).join("")}</select></div>
-        <div>${fieldLabel("Payment")}<select name="payment_status" class="w-full border-gray-300 rounded-lg"><option value="">All</option><option value="paid">Paid</option><option value="partially_paid">Partially paid</option><option value="unbilled">Unbilled</option><option value="unpaid">Unpaid</option></select></div>
-        <div>${fieldLabel("Type")}<select name="service_type" class="w-full border-gray-300 rounded-lg"><option value="">All Types</option><option>Free</option><option>Paid</option></select></div>
-        <div>${fieldLabel("From")}<input type="date" name="from_date" class="w-full border-gray-300 rounded-lg"></div>
-        <div>${fieldLabel("To")}<input type="date" name="to_date" class="w-full border-gray-300 rounded-lg"></div>
-        <div>${fieldLabel("Per page")}<select name="per_page" class="w-full border-gray-300 rounded-lg"><option>15</option><option>25</option><option>50</option><option>100</option></select></div>
+        <div>${filterLabel("From Date", "from_date")}${filterInput("from_date", "", "date")}</div>
+        <div>${filterLabel("To Date", "to_date")}${filterInput("to_date", "", "date")}</div>
+        <div>${filterLabel("Technician", "technician")}${filterSelect("technician", `<option value="">All Technicians</option>${techs.map((t) => `<option value="${t.name}">${escapeHtml(t.employee_name)}</option>`).join("")}`)}</div>
+        <div>${filterLabel("Status", "status")}${filterSelect("status", `<option value="">All Statuses</option>${["Admitted", "Inspection", "Quoted", "Approved", "Repairing", "Ready", "Completed", "Cancelled"].map((s) => `<option>${s}</option>`).join("")}`)}</div>
+        <div>${filterLabel("Payment Status", "payment_status")}${filterSelect("payment_status", `<option value="all">All</option><option value="paid">Paid</option><option value="partially_paid">Partially Paid</option><option value="unbilled">Unbilled</option><option value="unpaid">Unpaid</option>`)}</div>
+        <div>${filterLabel("Job Type", "service_type")}${filterSelect("service_type", `<option value="">All Types</option><option>Free</option><option>Paid</option>`)}</div>
+        <div>${filterLabel("Items Per Page", "per_page")}${filterSelect("per_page", `<option value="15" selected>15</option><option value="25">25</option><option value="50">50</option><option value="100">100</option>`)}</div>
+        <div>${filterLabel("Filter Options", "exclude_delivered")}<label class="flex items-center gap-2 h-10 px-3 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 cursor-pointer"><input type="checkbox" name="exclude_delivered" value="1" class="rounded border-gray-300 text-primary focus:ring-primary"><span class="text-sm text-gray-700">Hide Delivered Jobs</span></label></div>
       </div></div>
-    </form>
-    <div class="flex justify-end gap-2">
-      ${button("Delete selected", { variant: "danger", attrs: `data-action="bulk-delete" data-doctype="Job Master"` })}
-    </div>
+    </div></form>
+    <div id="jobs-selection"></div>
     <div id="jobs-table"></div>
   </div></div>`;
   return { header, content };
@@ -62,12 +70,13 @@ JobsView.mounted = async (view) => {
       search: fd.get("search") || undefined,
       status: fd.get("status") || undefined,
       technician: fd.get("technician") || undefined,
-      payment_status: fd.get("payment_status") || undefined,
+      payment_status: fd.get("payment_status") !== "all" ? fd.get("payment_status") || undefined : undefined,
       service_type: fd.get("service_type") || undefined,
       per_page: Number(fd.get("per_page")) || 15,
       page,
       from_date: fd.get("from_date") || undefined,
       to_date: fd.get("to_date") || undefined,
+      exclude_delivered: fd.get("exclude_delivered") ? 1 : undefined,
     };
     let jobs = [];
     let meta = { page: 1, pages: 1, total: 0 };
@@ -97,6 +106,8 @@ JobsView.mounted = async (view) => {
       rows, "wrench-screwdriver", "No job cards found."
     );
     bindBulkDelete(view, table);
+    table.querySelectorAll("input[type=checkbox][data-name]").forEach((c) => c.addEventListener("change", renderSelection));
+    renderSelection();
     pager.innerHTML = `<div class="border-t border-border px-6 py-3 flex items-center justify-between text-sm text-gray-600">
       <span>Total ${meta.total} record(s)</span>
       <span class="flex items-center gap-1">
@@ -112,10 +123,51 @@ JobsView.mounted = async (view) => {
       load();
     }));
   }
+  function selectedNames() {
+    return [...table.querySelectorAll("input[type=checkbox][data-name]:checked")].map((c) => c.dataset.name);
+  }
+  function renderSelection() {
+    const box = view.querySelector("#jobs-selection");
+    if (!box) return;
+    const names = selectedNames();
+    if (!names.length) {
+      box.innerHTML = "";
+      return;
+    }
+    box.innerHTML = `<div class="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-primary-200 bg-primary-50 px-4 py-3 shadow-sm">
+      <span class="mr-auto text-sm font-medium text-primary-800"><span class="font-semibold">${names.length}</span> selected</span>
+      <button data-sel-export class="inline-flex items-center justify-center gap-2 rounded-md h-10 px-4 py-2 text-sm font-medium shadow-sm border border-gray-300 bg-white text-gray-700 hover:bg-gray-50">Export selected</button>
+      <button data-sel-delete class="inline-flex items-center justify-center gap-2 rounded-md h-10 px-4 py-2 text-sm font-medium shadow-sm bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete selected</button>
+    </div>`;
+    box.querySelector("[data-sel-delete]").addEventListener("click", async () => {
+      if (!confirm(`Delete ${names.length} job card(s)? Parts stock will be returned.`)) return;
+      try {
+        const r = await api.bulkDelete("Job Master", names);
+        alert(r.message);
+        load();
+      } catch (e) { alert(e.message); }
+    });
+    box.querySelector("[data-sel-export]").addEventListener("click", () => {
+      window.open(`/api/method/ev_workshop.workshop_api.export_selected?entity=jobs&names=${encodeURIComponent(JSON.stringify(names))}`, "_blank");
+    });
+  }
   form.addEventListener("submit", (e) => { e.preventDefault(); page = 1; load(); });
-  view.querySelector('[data-action="export"]').addEventListener("click", () => {
-    window.open(`/api/method/ev_workshop.workshop_api.export_csv?entity=jobs`, "_blank");
-  });
+  view.querySelectorAll("[data-export]").forEach((a) => a.addEventListener("click", (e) => {
+    e.preventDefault();
+    const kind = a.dataset.export;
+    if (kind === "all") window.open(`/api/method/ev_workshop.workshop_api.export_csv?entity=jobs`, "_blank");
+    else {
+      const fd = new FormData(form);
+      const q = new URLSearchParams();
+      ["search", "status", "technician", "service_type", "from_date", "to_date"].forEach((k) => {
+        const v = fd.get(k);
+        if (v) q.append(k, v);
+      });
+      window.open(`/api/method/ev_workshop.workshop_api.export_csv?entity=jobs&${q.toString()}`, "_blank");
+    }
+  }));
+  const impBtn = view.querySelector('[data-action="import-jobs"]');
+  if (impBtn) impBtn.addEventListener("click", () => alert("Job import runs from Desk: Data Import Tool with the Job Master template."));
   await load();
 };
 
@@ -221,7 +273,7 @@ export async function JobDetailView(name) {
       ${invoices.length && due > 0 ? `<div class="border-t pt-6 mt-4"><h4 class="font-medium text-gray-900 mb-3">Record Payment</h4>
         <form id="pay-form" class="grid grid-cols-4 gap-4">
           <div>${fieldLabel("Amount")}${textInput("amount", due.toFixed(2), "number")}</div>
-          <div>${fieldLabel("Mode")}<select name="mode_of_payment" class="block w-full rounded-md border border-gray-300 bg-white shadow-sm text-sm"><option>Cash</option><option>UPI</option><option>Card</option><option>Bank Transfer</option><option>Cheque</option></select></div>
+          <div>${fieldLabel("Mode")}<select name="mode_of_payment" class="block w-full rounded-md border border-gray-300 bg-white h-10 px-3 py-2 text-sm transition-colors focus:ring-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 shadow-sm"><option>Cash</option><option>UPI</option><option>Card</option><option>Bank Transfer</option><option>Cheque</option></select></div>
           <div>${fieldLabel("Date")}${textInput("payment_date", new Date().toISOString().slice(0, 10), "date")}</div>
           <div>${fieldLabel("Reference")}${textInput("reference_no", "")}</div>
         </form>
@@ -244,11 +296,11 @@ JobDetailView.mounted = async (view, m) => {
   actions.querySelector("[data-edit-job]").addEventListener("click", async () => {
     const f = document.createElement("div");
     f.innerHTML = card(`<form id="job-edit" class="grid grid-cols-2 gap-4">
-      <div>${fieldLabel("Service Type")}<select name="service_type" class="block w-full rounded-md border border-gray-300 text-sm"><option>Free</option><option>Paid</option></select></div>
+      <div>${fieldLabel("Service Type")}<select name="service_type" class="block w-full rounded-md border border-gray-300 bg-white h-10 px-3 py-2 text-sm transition-colors focus:ring-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 shadow-sm"><option>Free</option><option>Paid</option></select></div>
       <div>${fieldLabel("KM Reading")}${textInput("km_reading", data.job.km_reading || 0, "number")}</div>
       <div>${fieldLabel("Supervisor (Employee ID)")}${textInput("supervisor", data.job.supervisor || "")}</div>
       <div>${fieldLabel("Mechanic (Employee ID)")}${textInput("mechanic", data.job.mechanic || "")}</div>
-      <div class="col-span-2">${fieldLabel("Complaints")}<textarea name="complaints" rows="2" class="block w-full rounded-md border border-gray-300 text-sm">${escapeHtml(data.job.complaints || "")}</textarea></div>
+      <div class="col-span-2">${fieldLabel("Complaints")}<textarea name="complaints" rows="2" class="block w-full rounded-md border border-gray-300 bg-white h-10 px-3 py-2 text-sm transition-colors focus:ring-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 shadow-sm">${escapeHtml(data.job.complaints || "")}</textarea></div>
       <div class="col-span-2 flex justify-end">${button("Save", { variant: "primary", type: "submit" })}</div>
     </form>`);
     view.querySelector("#job-flash").appendChild(f);
@@ -346,14 +398,14 @@ async function JobCreateView(preset = {}) {
   const content = `<div class="py-6"><div class="max-w-5xl mx-auto sm:px-6 lg:px-8 space-y-6">
     <div id="job-flash"></div>
     ${card(`<form id="job-form" class="grid grid-cols-2 gap-4">
-      <div>${fieldLabel("Vehicle Ownership")}<select name="vehicle_ownership" class="block w-full rounded-md border border-gray-300 bg-white shadow-sm text-sm" required>
+      <div>${fieldLabel("Vehicle Ownership")}<select name="vehicle_ownership" class="block w-full rounded-md border border-gray-300 bg-white h-10 px-3 py-2 text-sm transition-colors focus:ring-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 shadow-sm" required>
         <option value="">Select...</option>${opts.ownerships.map((o) => `<option value="${o.name}"${preset.ownership === o.name ? " selected" : ""}>${escapeHtml(o.customer_name || o.name)} — ${escapeHtml(o.registration_no || "")}</option>`).join("")}</select></div>
-      <div>${fieldLabel("Customer Type")}<select name="customer_type" class="block w-full rounded-md border border-gray-300 bg-white shadow-sm text-sm"><option>Customer</option><option>Retailer</option></select></div>
-      <div>${fieldLabel("Service Type")}<select name="service_type" class="block w-full rounded-md border border-gray-300 bg-white shadow-sm text-sm"><option>Paid</option><option>Free</option></select></div>
+      <div>${fieldLabel("Customer Type")}<select name="customer_type" class="block w-full rounded-md border border-gray-300 bg-white h-10 px-3 py-2 text-sm transition-colors focus:ring-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 shadow-sm"><option>Customer</option><option>Retailer</option></select></div>
+      <div>${fieldLabel("Service Type")}<select name="service_type" class="block w-full rounded-md border border-gray-300 bg-white h-10 px-3 py-2 text-sm transition-colors focus:ring-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 shadow-sm"><option>Paid</option><option>Free</option></select></div>
       <div>${fieldLabel("KM Reading")}${textInput("km_reading", "0", "number")}</div>
-      <div>${fieldLabel("Supervisor")}<select name="supervisor" class="block w-full rounded-md border border-gray-300 bg-white shadow-sm text-sm"><option value="">—</option>${opts.technicians.map((t) => `<option value="${t.name}">${escapeHtml(t.employee_name)}</option>`).join("")}</select></div>
-      <div>${fieldLabel("Mechanic")}<select name="mechanic" class="block w-full rounded-md border border-gray-300 bg-white shadow-sm text-sm"><option value="">—</option>${opts.technicians.map((t) => `<option value="${t.name}">${escapeHtml(t.employee_name)}</option>`).join("")}</select></div>
-      <div class="col-span-2">${fieldLabel("Complaints")}<textarea name="complaints" rows="3" class="block w-full rounded-md border border-gray-300 bg-white shadow-sm text-sm" required></textarea></div>
+      <div>${fieldLabel("Supervisor")}<select name="supervisor" class="block w-full rounded-md border border-gray-300 bg-white h-10 px-3 py-2 text-sm transition-colors focus:ring-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 shadow-sm"><option value="">—</option>${opts.technicians.map((t) => `<option value="${t.name}">${escapeHtml(t.employee_name)}</option>`).join("")}</select></div>
+      <div>${fieldLabel("Mechanic")}<select name="mechanic" class="block w-full rounded-md border border-gray-300 bg-white h-10 px-3 py-2 text-sm transition-colors focus:ring-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 shadow-sm"><option value="">—</option>${opts.technicians.map((t) => `<option value="${t.name}">${escapeHtml(t.employee_name)}</option>`).join("")}</select></div>
+      <div class="col-span-2">${fieldLabel("Complaints")}<textarea name="complaints" rows="3" class="block w-full rounded-md border border-gray-300 bg-white h-10 px-3 py-2 text-sm transition-colors focus:ring-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 shadow-sm" required></textarea></div>
       <div class="col-span-2 flex justify-end">${button("Create Job Card", { variant: "primary", type: "submit" })}</div>
     </form>`)}
   </div></div>`;

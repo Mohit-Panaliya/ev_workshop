@@ -42,7 +42,7 @@ CatalogView.mounted = async (view) => {
     <form id="cat-form" class="grid grid-cols-2 gap-3 mt-3">
       <div>${fieldLabel("Brand Name")}${textInput("brand_name", "", "text", "required")}</div>
       <div>${fieldLabel("Model Name (optional)")}${textInput("model_name")}</div>
-      <div>${fieldLabel("Battery Type")}<select name="battery_type" class="block w-full rounded-md border border-gray-300 text-sm"><option>Lithium-ion</option><option>Lead-acid</option><option>Other</option></select></div>
+      <div>${fieldLabel("Battery Type")}<select name="battery_type" class="block w-full rounded-md border border-gray-300 bg-white h-10 px-3 py-2 text-sm transition-colors focus:ring-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 shadow-sm"><option>Lithium-ion</option><option>Lead-acid</option><option>Other</option></select></div>
       <div class="flex items-end">${button("Create", { variant: "primary", type: "submit" })}</div>
     </form>`)}</div>`;
   view.appendChild(add);

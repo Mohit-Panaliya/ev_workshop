@@ -50,12 +50,41 @@ export function searchBar(name, value, placeholder) {
   </div>`
 }
 
-export function fieldLabel(text) {
-  return `<label class="block text-sm font-medium text-gray-700 mb-1">${text}</label>`
+export function fieldLabel(text, forId = "") {
+  return `<label${forId ? ` for="${forId}"` : ""} class="block font-medium text-sm text-gray-700">${text}</label>`
 }
 
+const INPUT_CLS = "block w-full rounded-md border border-gray-300 bg-white h-10 px-3 py-2 text-sm transition-colors placeholder:text-muted-foreground focus:ring-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 shadow-sm"
+
 export function textInput(name, value = "", type = "text", extra = "") {
-  return `<input type="${type}" name="${name}" value="${escapeHtml(value)}" class="block w-full rounded-md border border-gray-300 bg-white shadow-sm text-sm" ${extra}>`
+  return `<input type="${type}" name="${name}" value="${escapeHtml(value)}" class="${INPUT_CLS}" ${extra}>`
+}
+
+export function selectInput(name, optionsHtml, extra = "") {
+  return `<select name="${name}" id="${name}" class="${INPUT_CLS}" ${extra}>${optionsHtml}</select>`
+}
+
+// Filter-panel variants (plain inputs, exact filter-panel/search-bar classes)
+export function filterLabel(text, forId) {
+  return `<label for="${forId}" class="block text-sm font-medium text-gray-700 mb-1">${text}</label>`
+}
+
+export function filterInput(name, value = "", type = "text") {
+  return `<input type="${type}" name="${name}" id="${name}" value="${escapeHtml(value)}" class="w-full border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">`
+}
+
+export function filterSelect(name, optionsHtml) {
+  return `<select name="${name}" id="${name}" class="w-full border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">${optionsHtml}</select>`
+}
+
+export function searchBarExact(name, value, placeholder) {
+  return `<div class="relative">
+    <input type="text" name="${name}" id="${name}" value="${escapeHtml(value)}" placeholder="${placeholder}"
+      class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+      ${icon("magnifying-glass", "h-5 w-5 text-gray-400")}
+    </div>
+  </div>`
 }
 
 export function dataTable(headers, rowsHtml, emptyIcon, emptyText) {

@@ -21,10 +21,8 @@ function navLink(item, active, collapsed) {
     ? "bg-accent text-accent-foreground font-medium"
     : "text-gray-600 hover:bg-accent hover:text-accent-foreground focus:text-accent-foreground focus:bg-accent"
   const pad = collapsed ? "justify-center px-2" : "px-3"
-  const ic = active ? "heroicon-s" : "heroicon-o"
-  void ic
   return `<a href="${item.hash}" class="${base} ${state} ${pad}">
-    ${icon(item.icon, "w-5 h-5 shrink-0")}
+    ${icon(item.icon, "w-5 h-5 shrink-0", active)}
     ${collapsed ? "" : `<span class="ms-3 whitespace-nowrap">${item.label}</span>`}
   </a>`
 }
@@ -48,12 +46,12 @@ function userDropdown(user, collapsed) {
   return `<div class="relative" data-dropdown-root="user">
     <div>${trigger}</div>
     <div data-dropdown-menu="user" style="display:none;"
-      class="absolute z-50 bottom-full mb-2 w-56 rounded-md shadow-lg ltr:origin-bottom-left rtl:origin-bottom-right start-0">
+      class="absolute z-50 bottom-full mb-2 56 rounded-md shadow-lg ltr:origin-bottom-left rtl:origin-bottom-right start-0">
       <div class="rounded-md ring-1 ring-black ring-opacity-5 py-1 bg-card">
-        <a href="#/company" class="block px-4 py-2 text-sm text-gray-700 hover:bg-accent">
+        <a href="#/company" class="block w-full px-4 py-2 text-start text-sm leading-5 text-gray-700 hover:bg-accent hover:text-accent-foreground focus:outline-none focus:bg-accent focus:text-accent-foreground transition duration-150 ease-in-out">
           <span class="inline-flex items-center">${icon("user-circle", "w-4 h-4 me-2")}Profile</span>
         </a>
-        <a href="#/login" data-action="logout" class="block px-4 py-2 text-sm text-gray-700 hover:bg-accent">
+        <a href="#/login" data-action="logout" class="block w-full px-4 py-2 text-start text-sm leading-5 text-gray-700 hover:bg-accent hover:text-accent-foreground focus:outline-none focus:bg-accent focus:text-accent-foreground transition duration-150 ease-in-out">
           <span class="inline-flex items-center">${icon("arrow-right-start-on-rectangle", "w-4 h-4 me-2")}Log Out</span>
         </a>
       </div>
@@ -90,7 +88,7 @@ function drawer(user, currentHash, open) {
     const state = n.pattern.test(currentHash)
       ? "bg-accent text-accent-foreground font-medium"
       : "text-gray-600 hover:bg-accent hover:text-accent-foreground focus:text-accent-foreground focus:bg-accent"
-    return `<a href="${n.hash}" class="${base} ${state}">${icon(n.icon, "w-5 h-5 shrink-0")}<span class="ms-3 whitespace-nowrap">${n.label}</span></a>`
+    return `<a href="${n.hash}" class="${base} ${state}">${icon(n.icon, "w-5 h-5 shrink-0", n.pattern.test(currentHash))}<span class="ms-3 whitespace-nowrap">${n.label}</span></a>`
   }).join("")
   return `<aside class="fixed inset-y-0 left-0 z-40 w-64 flex flex-col bg-background border-r border-border shadow-xl md:hidden transition-transform duration-300 ease-in-out ${open ? "translate-x-0" : "-translate-x-full"}">
     <div class="flex items-center justify-between h-14 px-4 shrink-0 border-b border-border">

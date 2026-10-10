@@ -47,7 +47,7 @@ EmployeesView.mounted = async (view) => {
       <div>${fieldLabel("First Name")}${textInput("first_name", "", "text", "required")}</div>
       <div>${fieldLabel("Last Name")}${textInput("last_name")}</div>
       <div>${fieldLabel("Mobile")}${textInput("mobile_no")}</div>
-      <div>${fieldLabel("Role")}<select name="designation" class="block w-full rounded-md border border-gray-300 text-sm"><option>Technician</option><option>Supervisor</option><option>Helper</option><option>Front Desk</option><option>Admin</option></select></div>
+      <div>${fieldLabel("Role")}<select name="designation" class="block w-full rounded-md border border-gray-300 bg-white h-10 px-3 py-2 text-sm transition-colors focus:ring-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 shadow-sm"><option>Technician</option><option>Supervisor</option><option>Helper</option><option>Front Desk</option><option>Admin</option></select></div>
       <div>${fieldLabel("Date of Joining")}${textInput("date_of_joining", new Date().toISOString().slice(0, 10), "date")}</div>
       <div>${fieldLabel("Department")}${textInput("department")}</div>
       <div class="col-span-2 flex justify-end">${button("Create", { variant: "primary", type: "submit" })}</div>

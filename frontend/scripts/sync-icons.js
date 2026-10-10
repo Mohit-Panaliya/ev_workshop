@@ -26,12 +26,14 @@ scan(srcDir);
 
 let missing = [];
 for (const name of [...used].sort()) {
-  const from = join(root, "node_modules/heroicons/24/outline", `${name}.svg`);
-  const to = join(outDir, `${name}.svg`);
-  if (!existsSync(from)) {
-    missing.push(name);
-    continue;
+  for (const [sub, prefix] of [["", ""], ["solid-", "solid/"]]) {
+    const from = join(root, "node_modules/heroicons/24", prefix || "outline", `${name}.svg`);
+    const to = join(outDir, `${sub}${name}.svg`);
+    if (!existsSync(from)) {
+      if (!sub) missing.push(name);
+      continue;
+    }
+    writeFileSync(to, readFileSync(from));
   }
-  writeFileSync(to, readFileSync(from));
 }
 console.log(`synced ${used.size - missing.length} icons${missing.length ? `, MISSING: ${missing.join(", ")}` : ""}`);

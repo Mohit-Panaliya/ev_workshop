@@ -109,7 +109,8 @@ def get_dashboard():
 
 @frappe.whitelist()
 def get_jobs(status=None, search=None, limit=20, offset=0, from_date=None, to_date=None,
-             technician=None, service_type=None, payment_status=None, page=1, per_page=None):
+             technician=None, service_type=None, payment_status=None, page=1, per_page=None,
+             exclude_delivered=False):
 	"""Paginated job list with payment summary (Laravel job-cards index)."""
 	_require_read()
 	try:
@@ -122,6 +123,8 @@ def get_jobs(status=None, search=None, limit=20, offset=0, from_date=None, to_da
 	filters = []
 	if status:
 		filters.append(["Job Master", "status", "=", status])
+	elif exclude_delivered in (True, "1", 1, "true"):
+		filters.append(["Job Master", "status", "!=", "Completed"])
 	if from_date and to_date:
 		filters.append(["Job Master", "date", "between", [from_date, to_date]])
 	elif from_date:
@@ -168,11 +171,22 @@ def get_jobs(status=None, search=None, limit=20, offset=0, from_date=None, to_da
 	if payment_status:
 		jobs = [j for j in jobs if j["pay_status"] == payment_status]
 
-	total = frappe.db.count("Job Master", dict(
-		({"status": status} if status else {}) |
-		({"mechanic": technician} if technician else {}) |
-		({"service_type": service_type} if service_type else {})
-	)) if not search else len(jobs) + offset
+	count_filters = {}
+	if status:
+		count_filters["status"] = status
+	elif exclude_delivered in (True, "1", 1, "true"):
+		count_filters["status"] = ["!=", "Completed"]
+	if technician:
+		count_filters["mechanic"] = technician
+	if service_type:
+		count_filters["service_type"] = service_type
+	if from_date and to_date:
+		count_filters["date"] = ["between", [from_date, to_date]]
+	elif from_date:
+		count_filters["date"] = [">=", from_date]
+	elif to_date:
+		count_filters["date"] = ["<=", to_date]
+	total = frappe.db.count("Job Master", count_filters) if not search else len(jobs) + offset
 	pages = max((total + per_page - 1) // per_page, 1)
 	return {"jobs": jobs, "has_more": page < pages, "page": page, "per_page": per_page, "total": total, "pages": pages}
 
@@ -417,7 +431,7 @@ EXPORT_ENTITIES = {
 
 
 @frappe.whitelist()
-def export_csv(entity):
+def export_csv(entity, search=None, status=None, technician=None, service_type=None, from_date=None, to_date=None):
 	"""Download a CSV export for an entity (Laravel bulk-export parity)."""
 	if entity not in EXPORT_ENTITIES:
 		frappe.throw(f"Unknown export entity: {entity}")
@@ -428,7 +442,25 @@ def export_csv(entity):
 	import csv
 	import io
 
-	rows = frappe.get_all(doctype, fields=fields, limit_page_length=5000, order_by="modified desc")
+	filters = {}
+	if entity == "jobs":
+		if status:
+			filters["status"] = status
+		if technician:
+			filters["mechanic"] = technician
+		if service_type:
+			filters["service_type"] = service_type
+		if from_date and to_date:
+			filters["date"] = ["between", [from_date, to_date]]
+		elif from_date:
+			filters["date"] = [">=", from_date]
+		elif to_date:
+			filters["date"] = ["<=", to_date]
+
+	rows = frappe.get_all(doctype, fields=fields, filters=filters, limit_page_length=5000, order_by="modified desc")
+	if search and entity == "jobs":
+		safe = str(search).lower()
+		rows = [r for r in rows if safe in str(r.get("name") or "").lower() or safe in str(r.get("customer_name") or "").lower()]
 	buf = io.StringIO()
 	writer = csv.DictWriter(buf, fieldnames=fields)
 	writer.writeheader()
@@ -1197,3 +1229,48 @@ def get_customer_ledger(customer, from_date=None, to_date=None):
 			}
 		)
 	return {"lines": lines, "closing_balance": flt(balance)}
+
+
+@frappe.whitelist()
+def template_csv(entity):
+	"""Header-only CSV template for imports (Laravel template parity)."""
+	if entity not in IMPORTABLE:
+		frappe.throw(f"Unknown import entity: {entity}")
+	_, fields = IMPORTABLE[entity]
+	import csv
+	import io
+
+	buf = io.StringIO()
+	writer = csv.writer(buf)
+	writer.writerow(fields)
+	frappe.response["result"] = buf.getvalue()
+	frappe.response["doctype"] = f"{entity}_template.csv"
+	frappe.response["type"] = "csv"
+
+
+@frappe.whitelist()
+def export_selected(entity, names):
+	"""CSV export for explicitly selected records (Laravel bulk-export)."""
+	if entity not in EXPORT_ENTITIES:
+		frappe.throw(f"Unknown export entity: {entity}")
+	if isinstance(names, str):
+		names = frappe.parse_json(names)
+	doctype, fields = EXPORT_ENTITIES[entity]
+	if not frappe.has_permission(doctype, "export"):
+		frappe.throw(f"Not permitted to export {doctype}.", frappe.PermissionError)
+
+	import csv
+	import io
+
+	rows = []
+	for name in names or []:
+		if frappe.has_permission(doctype, "export", name):
+			doc = frappe.get_doc(doctype, name)
+			rows.append({f: doc.get(f) for f in fields})
+	buf = io.StringIO()
+	writer = csv.DictWriter(buf, fieldnames=fields)
+	writer.writeheader()
+	writer.writerows(rows)
+	frappe.response["result"] = buf.getvalue()
+	frappe.response["doctype"] = f"{entity}_selected.csv"
+	frappe.response["type"] = "csv"
