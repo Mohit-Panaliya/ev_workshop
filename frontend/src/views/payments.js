@@ -7,7 +7,9 @@ export async function PaymentsView() {
   const header = `<h2 class="flex items-center gap-2 font-semibold text-xl text-gray-800 leading-tight">${icon("banknotes", "w-6 h-6 text-primary")}Payments</h2>`;
   const content = `<div class="py-6"><div class="max-w-full sm:px-6 lg:px-8 space-y-4">
     ${card(`<p class="text-sm text-gray-600">Payments received against job-card and counter invoices (ERPNext Payment Entries).</p>`)}
-    <div class="flex justify-end">${button(`${icon("arrow-up-tray", "w-4 h-4")}Export`, { variant: "secondary", attrs: `data-action="export"` })}</div>
+    <div class="flex justify-end gap-2 items-end">
+      <div><label class="block text-sm font-medium text-gray-700 mb-1">Per page</label><select id="pay-per" class="border-gray-300 rounded-lg"><option>15</option><option>25</option><option>50</option><option>100</option></select></div>
+      ${button(`${icon("arrow-up-tray", "w-4 h-4")}Export`, { variant: "secondary", attrs: `data-action="export"` })}</div>
     <div id="pay-table"></div><div id="pay-summary"></div>
   </div></div>`;
   return { header, content };

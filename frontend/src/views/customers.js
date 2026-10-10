@@ -12,7 +12,8 @@ export async function CustomersView() {
       ${button(`${icon("plus", "w-4 h-4")}Add Customer`, { variant: "primary", href: "#/customers/new" })}
     </div></div>`;
   const content = `<div class="py-6"><div class="max-w-full sm:px-6 lg:px-8 space-y-4">
-    <form id="c-filter" class="flex gap-3"><div class="flex-1">${searchBar("search", "", "Search by name or mobile...")}</div>
+    <form id="c-filter" class="flex gap-3 items-end"><div class="flex-1">${searchBar("search", "", "Search by name or mobile...")}</div>
+    <div><label class="block text-sm font-medium text-gray-700 mb-1">Per page</label><select name="per_page" class="border-gray-300 rounded-lg"><option>15</option><option>25</option><option>50</option><option>100</option></select></div>
     ${button(`${icon("magnifying-glass", "w-4 h-4")}Search`, { type: "submit" })}</form>
     <div class="flex justify-end gap-2 items-center">
       ${importButton("customers", "customer_name,mobile_no,email_id")}
@@ -30,7 +31,7 @@ CustomersView.mounted = async (view) => {
     const fd = new FormData(form);
     let rows = [];
     try {
-      rows = await api.customers({ search: fd.get("search") || undefined });
+      rows = await api.customers({ search: fd.get("search") || undefined, limit: Number(fd.get("per_page")) || 20 });
     } catch (e) {
       table.innerHTML = `<p class="text-sm text-red-600">${e.message}</p>`;
       return;
@@ -70,6 +71,7 @@ export async function CustomerDetailView(name) {
       <p class="text-sm text-gray-600">${initials} · ${escapeHtml(p.mobile_no || "")}</p></div>
     </div>
     <div class="flex flex-wrap items-center gap-3">
+      ${d.vehicles.length ? button("Create Job Card", { variant: "primary", href: `#/jobs/new?ownership=${encodeURIComponent(d.vehicles[0].name)}` }) : ""}
       ${button("Edit", { variant: "secondary", attrs: `data-action="edit-customer"` })}
       ${button("Statement", { variant: "secondary", attrs: `data-action="statement"` })}
       ${button("Print Statement", { variant: "secondary", attrs: `data-action="print-statement"` })}
@@ -195,11 +197,13 @@ CustomerDetailView.mounted = async (view, m) => {
   view.querySelector('[data-action="statement"]').addEventListener("click", async () => {
     const box = view.querySelector("#c-statement");
     try {
-      const rows = await api.statement(name);
-      box.innerHTML = `<h4 class="font-medium text-gray-900 mb-2">Statement (${rows.length} invoices)</h4>
-        <table class="min-w-full text-sm"><tbody>
-        ${rows.map((r) => `<tr class="border-t"><td class="py-2">${r.name}</td><td class="py-2">${fmtDate(r.posting_date)}</td><td class="py-2 text-right">${money(r.grand_total)}</td><td class="py-2 text-right">${money(r.outstanding_amount)}</td></tr>`).join("")}
-        </tbody></table>`;
+      const r = await api.ledger(name);
+      box.innerHTML = `<h4 class="font-medium text-gray-900 mb-2">Statement (${r.lines.length} lines)</h4>
+        <table class="min-w-full text-sm"><thead><tr class="text-xs text-muted-foreground uppercase border-b">
+        <th class="text-left py-2">Date</th><th class="text-left py-2">Document</th><th class="text-right py-2">Billed</th><th class="text-right py-2">Paid</th><th class="text-right py-2">Balance</th></tr></thead><tbody>
+        ${r.lines.map((l) => `<tr class="border-t"><td class="py-2">${fmtDate(l.date)}</td><td class="py-2">${l.document}</td><td class="py-2 text-right">${money(l.billed)}</td><td class="py-2 text-right">${money(l.paid)}</td><td class="py-2 text-right font-medium">${money(l.balance)}</td></tr>`).join("")}
+        </tbody></table>
+        <p class="text-right font-bold mt-2">Closing Balance: ${money(r.closing_balance)}</p>`;
     } catch (e) { box.innerHTML = `<p class="text-sm text-red-600">${e.message}</p>`; }
   });
 };

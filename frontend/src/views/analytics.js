@@ -29,6 +29,8 @@ export async function AnalyticsView() {
     <select id="an-period" class="text-sm border border-input bg-background rounded-lg px-3 py-1.5">
       <option value="monthly">Monthly</option><option value="weekly">Weekly</option><option value="daily">Daily</option>
     </select>
+    <input type="date" id="an-from" class="text-sm border border-input bg-background rounded-lg px-3 py-1.5">
+    <input type="date" id="an-to" class="text-sm border border-input bg-background rounded-lg px-3 py-1.5">
   </div>`;
   const content = `<div class="py-8 bg-gradient-to-b from-muted/30 to-background min-h-screen"><div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
     <div id="an-error"></div>
@@ -49,9 +51,11 @@ AnalyticsView.mounted = async (view) => {
   async function draw(period) {
     charts.forEach((c) => c.destroy());
     charts = [];
+    const from = document.querySelector("#an-from").value || undefined;
+    const to = document.querySelector("#an-to").value || undefined;
     let a;
     try {
-      a = await api.analytics(period);
+      a = await api.analyticsFull(period, from, to);
     } catch (e) {
       view.querySelector("#an-error").innerHTML = `<p class="text-sm text-red-600">${e.message}</p>`;
       return;
@@ -92,10 +96,15 @@ AnalyticsView.mounted = async (view) => {
     <div class="bg-card border rounded-2xl p-6 shadow-sm"><h3 class="text-sm font-semibold tracking-wider uppercase text-muted-foreground mb-4">Top customers</h3>
     <table class="w-full text-sm"><thead><tr class="text-xs text-muted-foreground uppercase border-b"><th class="text-left py-3 font-semibold">Customer</th><th class="text-right py-3 font-semibold">Billed</th><th class="text-right py-3 font-semibold">Due</th></tr></thead>
     <tbody>${(a.top_customers || []).map((c) => `<tr class="hover:bg-muted/50"><td class="py-2">${escapeHtml(c.customer)}</td><td class="py-2 text-right">${money(c.billed)}</td><td class="py-2 text-right">${money(c.outstanding)}</td></tr>`).join("")}</tbody></table></div>
+    <div class="bg-card border rounded-2xl p-6 shadow-sm"><h3 class="text-sm font-semibold tracking-wider uppercase text-muted-foreground mb-4">Technician performance</h3>
+    <table class="w-full text-sm"><thead><tr class="text-xs text-muted-foreground uppercase border-b"><th class="text-left py-3 font-semibold">Technician</th><th class="text-right py-3 font-semibold">Jobs</th><th class="text-right py-3 font-semibold">Billed</th></tr></thead>
+    <tbody>${(a.technician_performance || []).map((t) => `<tr class="hover:bg-muted/50"><td class="py-2">${escapeHtml(t.technician)}</td><td class="py-2 text-right">${t.jobs}</td><td class="py-2 text-right">${money(t.billed)}</td></tr>`).join("") || `<tr><td colspan="3" class="py-2 text-gray-500">No data.</td></tr>`}</tbody></table></div>
     <div class="bg-card border rounded-2xl p-6 shadow-sm"><h3 class="text-sm font-semibold tracking-wider uppercase text-muted-foreground mb-4">Low stock (₹${Number(a.stock_value || 0).toLocaleString("en-IN")} total)</h3>
     <table class="w-full text-sm"><thead><tr class="text-xs text-muted-foreground uppercase border-b"><th class="text-left py-3 font-semibold">Item</th><th class="text-right py-3 font-semibold">Qty</th></tr></thead>
     <tbody>${(a.low_stock || []).map((s) => `<tr class="hover:bg-muted/50"><td class="py-2">${escapeHtml(s.item_code)}</td><td class="py-2 text-right">${s.actual_qty}</td></tr>`).join("") || `<tr><td colspan="2" class="py-2 text-gray-500">Stock levels OK.</td></tr>`}</tbody></table></div>`;
   }
   document.querySelector("#an-period").addEventListener("change", (e) => draw(e.target.value));
+  document.querySelector("#an-from").addEventListener("change", () => draw(document.querySelector("#an-period").value));
+  document.querySelector("#an-to").addEventListener("change", () => draw(document.querySelector("#an-period").value));
   await draw("monthly");
 };

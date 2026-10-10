@@ -1,7 +1,7 @@
 // dashboard.blade.php parity.
 import { api } from "../api.js";
 import { icon } from "../icons.js";
-import { badge, button, card, money, pageHeader, statusBadge, JOB_STATUS_BADGES, JOB_STATUS_ICONS } from "../ui.js";
+import { badge, button, card, money, escapeHtml, pageHeader, statusBadge, JOB_STATUS_BADGES, JOB_STATUS_ICONS } from "../ui.js";
 
 const DUE = "₹";
 
@@ -38,6 +38,11 @@ export async function DashboardView() {
   ).join("");
 
   const content = `<div class="py-6"><div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+    <form id="dash-search" class="mb-6"><div class="flex gap-3"><div class="flex-1">
+      <div class="relative"><input type="text" name="q" placeholder="Search customers, vehicles, job cards, invoices..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg">
+      <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">${icon("magnifying-glass", "h-5 w-5 text-gray-400")}</div></div>
+    </div>${button(`${icon("magnifying-glass", "w-4 h-4")}Search`, { type: "submit" })}</div></form>
+    <div id="dash-results" class="mb-6"></div>
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       ${card(`<div class="flex items-center justify-between mb-4">
           <h3 class="flex items-center gap-2 text-base font-semibold text-gray-900">${icon("wrench-screwdriver", "w-5 h-5 text-primary")}Today's Job Cards</h3>
@@ -59,8 +64,8 @@ export async function DashboardView() {
         <p class="text-sm ${(d.outstanding_dues || 0) > 0 ? "text-red-600" : "text-gray-500"} mt-2">unpaid across job cards &amp; invoices</p>`)}
       ${card(`<h3 class="flex items-center gap-2 text-sm font-semibold text-gray-900 mb-4">${icon("bolt", "w-5 h-5 text-primary")}Quick Actions</h3>
         <div class="space-y-3">
+          <p class="text-xs text-gray-500">Create job cards from a customer page.</p>
           ${button(`${icon("plus", "w-4 h-4")}New Counter Invoice`, { variant: "success", href: "#/counters/new", cls: "w-full" })}
-          ${button(`${icon("plus", "w-4 h-4")}New Job Card`, { variant: "primary", href: "#/jobs/new", cls: "w-full" })}
         </div>`)}
       ${card(`<div class="flex items-center justify-between mb-4">
           <h3 class="flex items-center gap-2 text-base font-semibold text-gray-900">${icon("cube", "w-5 h-5 text-primary")}Low Stock</h3>
@@ -77,3 +82,27 @@ export async function DashboardView() {
   void badge;
   return { header, content };
 }
+
+DashboardView.mounted = async (view) => {
+  const form = view.querySelector("#dash-search");
+  const box = view.querySelector("#dash-results");
+  if (!form) return;
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const q = new FormData(form).get("q") || "";
+    if (q.trim().length < 2) return;
+    try {
+      const r = await api.masterSearch(q.trim());
+      const sec = (t, items, link) => items.length ? `<h4 class="text-xs font-medium text-muted-foreground uppercase tracking-wider mt-3 mb-1">${t}</h4><ul class="divide-y divide-border bg-card border border-border rounded-lg">${items.map((x) => `<li class="px-4 py-2 text-sm"><a class="text-primary hover:underline" href="${link(x)}">${escapeHtml(x.customer_name || x.registration_no || x.name)}${x.status ? ` — ${x.status}` : ""}${x.mobile_no ? ` · ${x.mobile_no}` : ""}</a></li>`).join("")}</ul>` : "";
+      box.innerHTML = card(
+        sec("Customers", r.customers, (x) => `#/customers/${encodeURIComponent(x.name)}`) +
+        sec("Vehicles", r.vehicles, () => `#/catalog`) +
+        sec("Job Cards", r.jobs, (x) => `#/jobs/${encodeURIComponent(x.name)}`) +
+        sec("Counter Invoices", r.counters, (x) => `#/counters/${encodeURIComponent(x.name)}`) ||
+        `<p class="text-sm text-gray-500">No matches.</p>`
+      );
+    } catch (ex) {
+      box.innerHTML = `<p class="text-sm text-red-600">${ex.message}</p>`;
+    }
+  });
+};

@@ -20,7 +20,6 @@ export async function JobsView() {
     <h2 class="flex items-center gap-2 font-semibold text-xl text-gray-800 leading-tight">${icon("wrench-screwdriver", "w-6 h-6 text-primary")}Job Cards</h2>
     <div class="flex items-center gap-2">
       ${button(`${icon("arrow-up-tray", "w-4 h-4")}Export`, { variant: "secondary", attrs: `data-action="export"` })}
-      ${button(`${icon("plus", "w-4 h-4")}New Job`, { variant: "primary", href: "#/jobs/new" })}
     </div></div>`;
   const content = `<div class="py-6"><div class="max-w-full sm:px-6 lg:px-8 space-y-4">
     <div id="jobs-flash"></div>
@@ -83,10 +82,12 @@ JobsView.mounted = async (view) => {
 };
 
 export async function JobDetailView(name) {
-  if (name === "new") return JobCreateView();
+  const [docname, query] = String(name).split("?");
+  const preset = Object.fromEntries(new URLSearchParams(query || "").entries());
+  if (docname === "new") return JobCreateView(preset);
   let data;
   try {
-    data = await api.job(name);
+    data = await api.job(docname);
   } catch (e) {
     return { header: pageHeader("wrench-screwdriver", "Job Card"), content: `<div class="py-6"><div class="max-w-5xl mx-auto sm:px-6 lg:px-8"><p class="text-sm text-red-600">${e.message}</p></div></div>` };
   }
@@ -194,7 +195,8 @@ export async function JobDetailView(name) {
 }
 
 JobDetailView.mounted = async (view, m) => {
-  const name = decodeURIComponent(m[1]);
+  const [raw] = String(decodeURIComponent(m[1])).split("?");
+  const name = raw;
   if (name === "new") {
     bindJobCreate(view);
     return;
@@ -295,7 +297,7 @@ JobDetailView.mounted = async (view, m) => {
   });
 };
 
-async function JobCreateView() {
+async function JobCreateView(preset = {}) {
   let opts = { ownerships: [], technicians: [], parts: [], labours: [] };
   try {
     opts = await api.jobOptions();
@@ -307,7 +309,7 @@ async function JobCreateView() {
     <div id="job-flash"></div>
     ${card(`<form id="job-form" class="grid grid-cols-2 gap-4">
       <div>${fieldLabel("Vehicle Ownership")}<select name="vehicle_ownership" class="block w-full rounded-md border border-gray-300 bg-white shadow-sm text-sm" required>
-        <option value="">Select...</option>${opts.ownerships.map((o) => `<option value="${o.name}">${escapeHtml(o.customer_name || o.name)} — ${escapeHtml(o.registration_no || "")}</option>`).join("")}</select></div>
+        <option value="">Select...</option>${opts.ownerships.map((o) => `<option value="${o.name}"${preset.ownership === o.name ? " selected" : ""}>${escapeHtml(o.customer_name || o.name)} — ${escapeHtml(o.registration_no || "")}</option>`).join("")}</select></div>
       <div>${fieldLabel("Customer Type")}<select name="customer_type" class="block w-full rounded-md border border-gray-300 bg-white shadow-sm text-sm"><option>Customer</option><option>Retailer</option></select></div>
       <div>${fieldLabel("Service Type")}<select name="service_type" class="block w-full rounded-md border border-gray-300 bg-white shadow-sm text-sm"><option>Paid</option><option>Free</option></select></div>
       <div>${fieldLabel("KM Reading")}${textInput("km_reading", "0", "number")}</div>

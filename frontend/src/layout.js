@@ -10,6 +10,7 @@ const NAV = [
   { hash: "#/counters", pattern: /^#\/counters/, icon: "receipt-percent", label: "Counter Invoice" },
   { hash: "#/payments", pattern: /^#\/payments/, icon: "banknotes", label: "Payments" },
   { hash: "#/inventory", pattern: /^#\/(inventory|labour)/, icon: "cube", label: "Inventory" },
+  { hash: "#/analytics", pattern: /^#\/analytics/, icon: "chart-bar", label: "Analytics" },
   { hash: "#/employees", pattern: /^#\/employees/, icon: "user-group", label: "Employees" },
   { hash: "#/company", pattern: /^#\/company/, icon: "building-office-2", label: "Company Profile" },
 ]

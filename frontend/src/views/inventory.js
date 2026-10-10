@@ -38,9 +38,11 @@ InventoryView.mounted = async (view) => {
           ${td(`<span class="font-medium">${escapeHtml(p.item_name)}</span><br><span class="text-xs text-gray-500">${escapeHtml(p.item_no)}</span>`)}
           ${td(escapeHtml(p.item_class || "-"))}
           ${td(money(p.standard_rate), "text-right")}
+          ${td(money(p.labor_charge), "text-right")}
+          ${td(money(Number(p.standard_rate || 0) + Number(p.labor_charge || 0)), "text-right font-medium")}
           ${td(p.low ? badge("red", `Low: ${p.balance}`) : `${p.balance}`, "text-right font-medium")}
         </tr>`).join("");
-        table.innerHTML = dataTable(`${th("Part")}${th("Class")}${th("MRP", "text-right")}${th("Stock", "text-right")}`, html, "cube", "No parts found.");
+        table.innerHTML = dataTable(`${th("Part")}${th("Class")}${th("MRP", "text-right")}${th("Labor", "text-right")}${th("Total", "text-right")}${th("Stock", "text-right")}`, html, "cube", "No parts found.");
       } else {
         const rows = await api.labour({});
         const html = rows.map((l) => `<tr class="group hover:bg-muted/50">

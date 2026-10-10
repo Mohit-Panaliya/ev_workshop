@@ -587,7 +587,7 @@ def get_parts(search=None, category=None, low_stock=False, limit=50):
 		filters["item_name"] = ["like", f"%{safe}%"]
 	masters = frappe.get_list(
 		"Item Master",
-		fields=["name", "item_no", "item_name", "item_class", "uom", "standard_rate", "min_qty", "hsn_code"],
+		fields=["name", "item_no", "item_name", "item_class", "uom", "standard_rate", "labor_charge", "min_qty", "hsn_code"],
 		filters=filters,
 		order_by="item_name",
 		limit_page_length=limit,

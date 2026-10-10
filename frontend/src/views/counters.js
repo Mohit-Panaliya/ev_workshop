@@ -15,7 +15,7 @@ export async function CountersView() {
     <form id="ci-filter" class="flex gap-3"><div class="flex-1">
       <div class="relative"><input type="text" name="search" placeholder="Search invoice or walk-in..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg">
       <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">${icon("magnifying-glass", "h-5 w-5 text-gray-400")}</div></div>
-    </div>${button(`${icon("magnifying-glass", "w-4 h-4")}Search`, { type: "submit" })}</form>
+    </div><div><label class="block text-sm font-medium text-gray-700 mb-1">Per page</label><select name="per_page" class="border-gray-300 rounded-lg"><option>15</option><option>25</option><option>50</option><option>100</option></select></div>${button(`${icon("magnifying-glass", "w-4 h-4")}Search`, { type: "submit" })}</form>
     <div class="flex justify-end gap-2">
       ${button("Delete selected", { variant: "danger", attrs: `data-action="bulk-delete" data-doctype="Counter Invoice"` })}
     </div>
