@@ -138,18 +138,19 @@ def get_jobs(status=None, search=None, limit=20, offset=0, from_date=None, to_da
 	if search:
 		safe = str(search).replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 		like = f"%{safe}%"
-		filters += [
+		or_filters = [
 			["Job Master", "name", "like", like],
-			"or",
 			["Job Master", "customer_name", "like", like],
-			"or",
 			["Job Master", "mobile_no", "like", like],
 		]
+	else:
+		or_filters = None
 
 	jobs = frappe.get_list(
 		"Job Master",
 		fields=[*JOB_LIST_FIELDS, "vehicle_ownership"],
 		filters=filters or {},
+		or_filters=or_filters,
 		order_by=f"{ {'name': 'name', 'date': 'date', 'status': 'status', 'grand_total': 'grand_total'}.get(sort, 'date')} {'asc' if direction == 'asc' else 'desc'}, creation desc",
 		limit_page_length=per_page,
 		limit_start=offset,
@@ -335,7 +336,7 @@ def get_analytics(period="monthly", from_date=None, to_date=None):
 		where, params, group = "posting_date >= date_sub(curdate(), interval 12 week)", [], "yearweek(posting_date)"
 	else:
 		month_start = get_first_day(today())
-		where, params, group = "posting_date >= %s", [month_start], "date_format(posting_date, '%Y-%m')"
+		where, params, group = "posting_date >= %s", [month_start], "date_format(posting_date, '%%Y-%%m')"
 
 	analytics["revenue_trend"] = frappe.db.sql(
 		f"""select {group} as month, sum(base_grand_total) as revenue,
