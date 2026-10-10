@@ -34,7 +34,33 @@ class JobItem(Document):
 		time JobMaster.calculate_grand_total() runs, all child amounts
 		are already computed.
 		"""
+		self.autofill_from_master()
 		self.calculate_amounts()
+
+	def autofill_from_master(self):
+		"""PHP parity: MRP + labor charge come from the master (auto-fill).
+
+		Explicit (fetch_from timing does not cover API-created rows).
+		User-overridden non-zero values are never clobbered.
+		"""
+		if not self.item_no:
+			return
+		master = frappe.db.get_value(
+			"Item Master", self.item_no, ["item_name", "standard_rate", "labor_charge"], as_dict=True
+		)
+		if not master:
+			master = frappe.db.get_value(
+				"Item Master", {"item_no": self.item_no},
+				["item_name", "standard_rate", "labor_charge"], as_dict=True,
+			)
+		if not master:
+			return
+		if not self.item_name:
+			self.item_name = master.item_name
+		if not flt(self.rate):
+			self.rate = flt(master.standard_rate)
+		if not flt(self.labor_cost):
+			self.labor_cost = flt(master.labor_charge)
 
 	def calculate_amounts(self, customer_type=None):
 		"""Calculate part amount, labor, tax, and total amount.
