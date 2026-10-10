@@ -138,13 +138,21 @@ def get_jobs(status=None, search=None, limit=20, offset=0, from_date=None, to_da
 	if search:
 		safe = str(search).replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 		like = f"%{safe}%"
-		filters += [
-			["Job Master", "name", "like", like],
-			"or",
-			["Job Master", "customer_name", "like", like],
-			"or",
-			["Job Master", "mobile_no", "like", like],
-		]
+		# AND-filters cannot mix with OR-chains in one list on this
+		# Frappe version: resolve search matches first, then filter by name.
+		matched = frappe.get_list(
+			"Job Master",
+			fields=["name"],
+			filters=[
+				["Job Master", "name", "like", like],
+				"or",
+				["Job Master", "customer_name", "like", like],
+				"or",
+				["Job Master", "mobile_no", "like", like],
+			],
+			limit_page_length=500,
+		)
+		filters.append(["Job Master", "name", "in", [r.name for r in matched] or ["__none__"]])
 
 	jobs = frappe.get_list(
 		"Job Master",
