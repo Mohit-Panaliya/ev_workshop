@@ -24,8 +24,12 @@ function payLabel(s) {
 
 export async function JobsView() {
   let techs = [];
+  let brands = [];
   try {
     techs = (await api.jobOptions()).technicians || [];
+  } catch { /* filter still renders */ }
+  try {
+    brands = await api.catalog();
   } catch { /* filter still renders */ }
   const header = `<div class="flex flex-wrap gap-2 justify-between items-center">
     <h2 class="flex items-center gap-2 font-semibold text-xl text-gray-800 leading-tight">${icon("wrench-screwdriver", "w-6 h-6 text-primary")}Job Cards</h2>
@@ -51,6 +55,7 @@ export async function JobsView() {
         <div>${filterLabel("To Date", "to_date")}${filterInput("to_date", "", "date")}</div>
         <div>${filterLabel("Technician", "technician")}${filterSelect("technician", `<option value="">All Technicians</option>${techs.map((t) => `<option value="${t.name}">${escapeHtml(t.employee_name)}</option>`).join("")}`)}</div>
         <div>${filterLabel("Status", "status")}${filterSelect("status", `<option value="">All Statuses</option>${STATUSES.map((s) => `<option>${s}</option>`).join("")}`)}</div>
+        <div>${filterLabel("Vehicle Brand", "brand")}${filterSelect("brand", `<option value="">All Brands</option>${brands.map((b) => `<option value="${b.name}">${escapeHtml(b.brand_name)}</option>`).join("")}`)}</div>
         <div>${filterLabel("Payment Status", "payment_status")}${filterSelect("payment_status", `<option value="all">All</option><option value="paid">Paid</option><option value="partially_paid">Partially Paid</option><option value="unbilled">Unbilled</option><option value="unpaid">Unpaid</option>`)}</div>
         <div>${filterLabel("Job Type", "service_type")}${filterSelect("service_type", `<option value="">All Types</option><option>Free</option><option>Paid</option>`)}</div>
         <div>${filterLabel("Items Per Page", "per_page")}${filterSelect("per_page", `<option value="15" selected>15</option><option value="25">25</option><option value="50">50</option><option value="100">100</option>`)}</div>
@@ -87,11 +92,12 @@ JobsView.mounted = async (view) => {
     const params = {
       search: f.search || undefined, status: f.status || undefined, technician: f.technician || undefined,
       payment_status: f.payment_status || undefined, service_type: f.service_type || undefined,
+      brand: f.brand || undefined,
       per_page: Number(f.per_page) || 15, page, from_date: f.from_date || undefined, to_date: f.to_date || undefined,
       exclude_delivered: fd.get("exclude_delivered") ? 1 : undefined,
       sort: sort?.column, direction: sort?.direction,
     };
-    activeBox.innerHTML = activeFiltersBar({ search: f.search, status: f.status, technician: f.technician, payment_status: f.payment_status, service_type: f.service_type, from_date: f.from_date, to_date: f.to_date }, "#/jobs");
+    activeBox.innerHTML = activeFiltersBar({ search: f.search, status: f.status, technician: f.technician, payment_status: f.payment_status, service_type: f.service_type, brand: f.brand, from_date: f.from_date, to_date: f.to_date }, "#/jobs");
     let jobs = [], meta = { page: 1, pages: 1, total: 0 };
     try {
       const r = await api.jobs(params);

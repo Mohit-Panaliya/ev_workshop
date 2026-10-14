@@ -110,7 +110,7 @@ def get_dashboard():
 @frappe.whitelist()
 def get_jobs(status=None, search=None, limit=20, offset=0, from_date=None, to_date=None,
              technician=None, service_type=None, payment_status=None, page=1, per_page=None,
-             exclude_delivered=False, sort="date", direction="desc"):
+             exclude_delivered=False, sort="date", direction="desc", brand=None):
 	"""Paginated job list with payment summary (Laravel job-cards index)."""
 	_require_read()
 	try:
@@ -135,6 +135,20 @@ def get_jobs(status=None, search=None, limit=20, offset=0, from_date=None, to_da
 		filters.append(["Job Master", "mechanic", "=", technician])
 	if service_type:
 		filters.append(["Job Master", "service_type", "=", service_type])
+	if brand:
+		# Job -> ownership -> EV Vehicle -> Vehicle Model -> brand (PHP brand filter)
+		model_names = frappe.get_all("Vehicle Model", filters={"vehicle_brand": brand}, pluck="name")
+		veh_names = (
+			frappe.get_all("EV Vehicle", filters={"vehicle_model": ["in", model_names]}, pluck="name")
+			if model_names
+			else []
+		)
+		own_names = (
+			frappe.get_all("Vehicle Ownership", filters={"vehicle": ["in", veh_names]}, pluck="name")
+			if veh_names
+			else []
+		)
+		filters.append(["Job Master", "vehicle_ownership", "in", own_names or ["__none__"]])
 	if search:
 		safe = str(search).replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 		like = f"%{safe}%"
@@ -180,6 +194,11 @@ def get_jobs(status=None, search=None, limit=20, offset=0, from_date=None, to_da
 		jobs = [j for j in jobs if j["pay_status"] == payment_status]
 
 	count_filters = {}
+	if brand:
+		model_names = frappe.get_all("Vehicle Model", filters={"vehicle_brand": brand}, pluck="name")
+		veh_names = frappe.get_all("EV Vehicle", filters={"vehicle_model": ["in", model_names]}, pluck="name") if model_names else []
+		own_names = frappe.get_all("Vehicle Ownership", filters={"vehicle": ["in", veh_names]}, pluck="name") if veh_names else []
+		count_filters["vehicle_ownership"] = ["in", own_names or ["__none__"]]
 	if status:
 		count_filters["status"] = status
 	elif exclude_delivered in (True, "1", 1, "true"):
